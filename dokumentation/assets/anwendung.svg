@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="title description">
+  <title id="title">Zwei Kompasse auf einer gemeinsamen Grundlage</title>
+  <desc id="description">Der Versorgungs-Kompass unterstützt Kontakte, Organisationen und die Versorgungskarte. Der Hospitations-Kompass unterstützt Termine, Beobachtungen und Auswertungen. Beide nutzen gemeinsame Kontakte, Organisationen, Profile und Rollen.</desc>
+  <defs><style>text{font-family:Arial,Helvetica,sans-serif}.title{font-size:32px;font-weight:700;fill:#10236E}.label{font-size:28px;font-weight:700}.body{font-size:24px;fill:#445377}</style></defs>
+  <rect width="1200" height="580" rx="20" fill="#FFFFFF"/>
+  <text class="title" x="40" y="58">Zwei Kompasse, eine gemeinsame Grundlage</text>
+  <rect x="40" y="98" width="540" height="270" rx="18" fill="#F1F7FF" stroke="#C4DBFA" stroke-width="2"/>
+  <rect x="620" y="98" width="540" height="270" rx="18" fill="#FFF7EC" stroke="#E7CCAE" stroke-width="2"/>
+  <!-- Bildmarken aus public/brand/versorgungs-kompass/mark.svg und public/brand/modules/hospitation/mark.svg. -->
+  <g transform="translate(66 122)">
+    <rect x="11" y="9" width="18" height="18" rx="6" transform="rotate(45 20 18)" fill="#2788F6"/>
+    <rect x="34" y="24" width="18" height="18" rx="6" transform="rotate(45 43 33)" fill="#FF7F3F"/>
+    <rect x="11" y="39" width="18" height="18" rx="6" transform="rotate(45 20 48)" fill="#10236E"/>
+  </g>
+  <g transform="translate(646 122)">
+    <path d="M16 48 L32 32 L48 16" fill="none" stroke="#A84C16" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="7" y="39" width="18" height="18" rx="6" transform="rotate(45 16 48)" fill="#E0A44D"/>
+    <rect x="23" y="23" width="18" height="18" rx="6" transform="rotate(45 32 32)" fill="#A84C16"/>
+    <rect x="39" y="7" width="18" height="18" rx="6" transform="rotate(45 48 16)" fill="#10236E"/>
+  </g>
+  <text class="label" x="146" y="164" fill="#10236E">Versorgungs-Kompass</text>
+  <text class="label" x="726" y="164" fill="#A84C16">Hospitations-Kompass</text>
+  <g class="body">
+    <text x="76" y="232">Kontakte und Organisationen</text>
+    <text x="76" y="278">Regionale Versorgungskarte</text>
+    <text x="76" y="324">Profile und Notizen</text>
+    <text x="656" y="232">Hospitationen und Termine</text>
+    <text x="656" y="278">Beobachtungen und Zuordnungen</text>
+    <text x="656" y="324">Auswertung und Export</text>
+  </g>
+  <path d="M310 368v40h580v-40M600 408v26" fill="none" stroke="#9AA9C5" stroke-width="3"/>
+  <rect x="40" y="434" width="1120" height="106" rx="18" fill="#10236E"/>
+  <text x="76" y="477" font-size="24" font-weight="700" fill="#FFFFFF">Gemeinsame Grundlage</text>
+  <g font-size="24" fill="#FFFFFF"><text x="76" y="515">Kontakte</text><text x="286" y="515">Organisationen</text><text x="574" y="515">Profile</text><text x="740" y="515">Rollen und Rechte</text></g>
+</svg>

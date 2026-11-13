@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="550" viewBox="0 0 1200 550" role="img" aria-labelledby="title description">
+  <title id="title">Vom Quellstand zum geprüften Buildpaket</title>
+  <desc id="description">Ein Quellstand erzeugt zwei getrennte Ausgaben: statische Frontend-Dateien und ein API-Container-Image. Das lokale Buildpaket enthält außerdem das PostgreSQL-16-Image, das Kernschema sowie Prüfsummen und Herkunft. Ein getrennter synthetischer Starttest prüft Frontend, API, Datenbank und OIDC-Anmeldung. Das Bild beschreibt keine gemeinsame Frontend- und API-Containerlaufzeit und keine Zielbereitstellung.</desc>
+  <defs>
+    <style>text{font-family:Arial,Helvetica,sans-serif;fill:#10236E}.title{font-size:32px;font-weight:700}.label{font-size:27px;font-weight:700}.body{font-size:22px;fill:#445377}.arrow{fill:none;stroke:#7486AA;stroke-width:3;marker-end:url(#arrow)}</style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto"><path d="m0 0 10 5-10 5Z" fill="#7486AA"/></marker>
+  </defs>
+  <rect width="1200" height="550" rx="20" fill="#FFFFFF"/>
+  <text class="title" x="40" y="58">Ein Quellstand, zwei Buildausgaben</text>
+  <rect x="40" y="206" width="200" height="126" rx="18" fill="#10236E"/>
+  <text class="label" x="140" y="259" text-anchor="middle" style="fill:#FFFFFF">Quellstand</text>
+  <text x="140" y="298" text-anchor="middle" font-size="22" style="fill:#FFFFFF">Commit</text>
+  <rect x="300" y="116" width="270" height="126" rx="18" fill="#F1F7FF" stroke="#C4DBFA" stroke-width="2"/>
+  <text class="label" x="435" y="169" text-anchor="middle">Frontend</text>
+  <text class="body" x="435" y="208" text-anchor="middle">Statische Dateien</text>
+  <rect x="300" y="296" width="270" height="126" rx="18" fill="#FFF7EC" stroke="#E7CCAE" stroke-width="2"/>
+  <text class="label" x="435" y="349" text-anchor="middle">API-Image</text>
+  <text class="body" x="435" y="388" text-anchor="middle">Container für die API</text>
+  <rect x="630" y="181" width="230" height="176" rx="18" fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2"/>
+  <text class="label" x="745" y="226" text-anchor="middle">Buildpaket</text>
+  <text x="745" y="267" text-anchor="middle" font-size="21" style="fill:#445377">Frontend und Images</text>
+  <text x="745" y="304" text-anchor="middle" font-size="21" style="fill:#445377">Schema und Herkunft</text>
+  <rect x="920" y="171" width="240" height="196" rx="18" fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2"/>
+  <text class="label" x="1040" y="220" text-anchor="middle">Starttest</text>
+  <text class="body" x="1040" y="261" text-anchor="middle">Synthetische Daten</text>
+  <text class="body" x="1040" y="299" text-anchor="middle">PostgreSQL + OIDC</text>
+  <text class="body" x="1040" y="337" text-anchor="middle">Frontend und API</text>
+  <path class="arrow" d="M240 269h30v-90h30"/><path class="arrow" d="M240 269h30v90h30"/>
+  <path class="arrow" d="M570 179h30v67h30"/><path class="arrow" d="M570 359h30v-67h30"/>
+  <path class="arrow" d="M860 269h60"/>
+  <text class="body" x="40" y="477">PostgreSQL-16-Image und Kernschema gehören zum lokalen Prüfpaket.</text>
+  <text class="body" x="40" y="515">Der Starttest verwendet ausschließlich synthetische Fachdaten.</text>
+</svg>

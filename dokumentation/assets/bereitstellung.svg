@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="390" viewBox="0 0 1200 390" role="img" aria-labelledby="title description">
+  <title id="title">Vom Quellstand zur Abnahme</title>
+  <desc id="description">Fünf Schritte der Bereitstellung: Quellstand mit Commit und Release prüfen, Frontend und API bauen, Artefakte und Sicherheit prüfen, in der Zielumgebung bereitstellen und Anmeldung, Fachabläufe sowie Wiederherstellung abnehmen. Ein erfolgreicher Build ist noch keine Betriebsabnahme.</desc>
+  <defs>
+    <style>text{font-family:Arial,Helvetica,sans-serif;fill:#10236E}.title{font-size:32px;font-weight:700}.label{font-size:25px;font-weight:700}.body{font-size:21px;fill:#445377}.arrow{fill:none;stroke:#7486AA;stroke-width:3;marker-end:url(#arrow)}</style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="m0 0 10 5-10 5Z" fill="#7486AA"/></marker>
+  </defs>
+  <rect width="1200" height="390" rx="20" fill="#FFFFFF"/>
+  <text class="title" x="40" y="58">Vom Quellstand zur Abnahme</text>
+  <g fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2">
+    <rect x="40" y="112" width="200" height="192" rx="18"/><rect x="270" y="112" width="200" height="192" rx="18"/><rect x="500" y="112" width="200" height="192" rx="18"/><rect x="730" y="112" width="200" height="192" rx="18"/><rect x="960" y="112" width="200" height="192" rx="18"/>
+  </g>
+  <g font-size="20" font-weight="700" style="fill:#2788F6"><text x="62" y="148">01</text><text x="292" y="148">02</text><text x="522" y="148">03</text><text x="752" y="148">04</text><text x="982" y="148">05</text></g>
+  <g class="label"><text x="62" y="190">Quellstand</text><text x="292" y="190">Bauen</text><text x="522" y="190">Prüfen</text><text x="752" y="190">Bereitstellen</text><text x="982" y="190">Abnehmen</text></g>
+  <g class="body">
+    <text x="62" y="238">Commit</text><text x="62" y="271">und Release</text>
+    <text x="292" y="238">Frontend</text><text x="292" y="271">und API-Image</text>
+    <text x="522" y="238">Funktion</text><text x="522" y="271">und Sicherheit</text>
+    <text x="752" y="238">Artefakte in der</text><text x="752" y="271">Zielumgebung</text>
+    <text x="982" y="238">Anmeldung und</text><text x="982" y="271">Fachabläufe</text>
+  </g>
+  <path class="arrow" d="M240 208h30"/><path class="arrow" d="M470 208h30"/><path class="arrow" d="M700 208h30"/><path class="arrow" d="M930 208h30"/>
+  <text class="body" x="40" y="357">Ein erfolgreicher Build ist noch keine Betriebsabnahme.</text>
+</svg>

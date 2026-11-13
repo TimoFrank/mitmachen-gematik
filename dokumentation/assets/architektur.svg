@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title description">
+  <title id="title">Architektur des gematik-Zielbetriebs</title>
+  <desc id="description">Der Browser greift über eine gemeinsame interne HTTPS-Adresse auf das OIDC-Gateway zu. Das Gateway stellt statische Frontend-Dateien bereit und leitet API-Anfragen mit geprüftem JWT an die Node.js-API auf GKE weiter. Die API greift verschlüsselt auf PostgreSQL 16 zu. Die API ist nur über das Gateway erreichbar.</desc>
+  <defs>
+    <style>text{font-family:Arial,Helvetica,sans-serif;fill:#10236E}.title{font-size:32px;font-weight:700}.label{font-size:27px;font-weight:700}.body{font-size:22px;fill:#445377}.route{font-size:22px;font-weight:700}.arrow{fill:none;stroke:#7486AA;stroke-width:3;marker-end:url(#arrow)}</style>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="m0 0 10 5-10 5Z" fill="#7486AA"/></marker>
+  </defs>
+  <rect width="1200" height="640" rx="20" fill="#FFFFFF"/>
+  <text class="title" x="40" y="58">Ein Zugang für Frontend und API</text>
+  <rect x="40" y="242" width="180" height="124" rx="18" fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2"/>
+  <text class="label" x="130" y="313" text-anchor="middle">Browser</text>
+  <rect x="270" y="225" width="250" height="160" rx="18" fill="#10236E"/>
+  <text class="label" x="395" y="272" text-anchor="middle" style="fill:#FFFFFF">OIDC-Gateway</text>
+  <text x="395" y="315" text-anchor="middle" font-size="22" style="fill:#FFFFFF">Anmeldung</text>
+  <text x="395" y="351" text-anchor="middle" font-size="22" style="fill:#FFFFFF">Geprüftes JWT</text>
+  <rect x="640" y="130" width="240" height="116" rx="18" fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2"/>
+  <text class="label" x="760" y="177" text-anchor="middle">Frontend</text>
+  <text class="body" x="760" y="215" text-anchor="middle">Statische Dateien</text>
+  <rect x="608" y="300" width="304" height="236" rx="20" fill="#F1F7FF" stroke="#C4DBFA" stroke-width="2"/>
+  <text x="636" y="338" font-size="22" font-weight="700">GKE</text>
+  <rect x="640" y="365" width="240" height="132" rx="18" fill="#FFFFFF" stroke="#C4DBFA" stroke-width="2"/>
+  <text class="label" x="760" y="415" text-anchor="middle">Node.js-API</text>
+  <text x="760" y="455" text-anchor="middle" font-size="20" style="fill:#445377">Rollen und Fachdaten</text>
+  <rect x="960" y="374" width="200" height="124" rx="18" fill="#F5F7FC" stroke="#D9E3F4" stroke-width="2"/>
+  <text x="1060" y="425" text-anchor="middle" font-size="25" font-weight="700">PostgreSQL 16</text>
+  <text class="body" x="1060" y="465" text-anchor="middle">Datenbank</text>
+  <path class="arrow" d="M220 304h50"/>
+  <path class="arrow" d="M520 275h50v-87h70"/>
+  <path class="arrow" d="M520 335h50v96h70"/>
+  <path class="arrow" d="M880 431h80"/>
+  <text class="route" x="594" y="172">/</text>
+  <text class="route" x="574" y="407">/api</text>
+  <text x="920" y="405" text-anchor="middle" font-size="18" style="fill:#445377">TLS</text>
+  <text class="body" x="40" y="582">Gleiche interne HTTPS-Adresse für Frontend und API.</text>
+  <text class="body" x="40" y="616">Die API ist nur über das Gateway erreichbar.</text>
+</svg>
