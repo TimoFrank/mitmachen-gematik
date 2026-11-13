@@ -1,9 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="580" viewBox="0 0 1200 580" role="img" aria-labelledby="title description">
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="640" viewBox="0 0 1200 640" role="img" aria-labelledby="title description">
   <title id="title">Zwei Kompasse auf einer gemeinsamen Grundlage</title>
-  <desc id="description">Der Versorgungs-Kompass unterstützt Kontakte, Organisationen und die Versorgungskarte. Der Hospitations-Kompass unterstützt Termine, Beobachtungen und Auswertungen. Beide nutzen gemeinsame Kontakte, Organisationen, Profile und Rollen.</desc>
-  <defs><style>text{font-family:Arial,Helvetica,sans-serif}.title{font-size:32px;font-weight:700;fill:#10236E}.label{font-size:28px;font-weight:700}.body{font-size:24px;fill:#445377}</style></defs>
-  <rect width="1200" height="580" rx="20" fill="#FFFFFF"/>
-  <text class="title" x="40" y="58">Zwei Kompasse, eine gemeinsame Grundlage</text>
+  <desc id="description">Der Versorgungs-Kompass unterstützt Kontakte, Organisationen und die Versorgungskarte. Der Hospitations-Kompass unterstützt Termine, Beobachtungen und Auswertungen. Beide stehen auf einem gemeinsamen Fundament aus Kontakten, Organisationen, Profilen und Rechten. Kleine Symbole zeigen Personen, eine Organisation, ein Profil und einen Schutzschild.</desc>
+  <defs>
+    <style>text{font-family:Arial,Helvetica,sans-serif}.title{font-size:32px;font-weight:700;fill:#10236E}.label{font-size:28px;font-weight:700}.body{font-size:24px;fill:#445377}.foundation-icon{fill:none;stroke:#FFFFFF;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}</style>
+    <linearGradient id="foundation-background" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#10236E"/><stop offset="1" stop-color="#010E52"/></linearGradient>
+  </defs>
+  <rect width="1200" height="640" rx="20" fill="#FFFFFF"/>
+  <text class="title" x="600" y="58" text-anchor="middle">Zwei Kompasse, eine gemeinsame Grundlage</text>
   <rect x="40" y="98" width="540" height="270" rx="18" fill="#F1F7FF" stroke="#C4DBFA" stroke-width="2"/>
   <rect x="620" y="98" width="540" height="270" rx="18" fill="#FFF7EC" stroke="#E7CCAE" stroke-width="2"/>
   <!-- Bildmarken aus public/brand/versorgungs-kompass/mark.svg und public/brand/modules/hospitation/mark.svg. -->
@@ -28,8 +31,29 @@
     <text x="656" y="278">Beobachtungen und Zuordnungen</text>
     <text x="656" y="324">Auswertung und Export</text>
   </g>
-  <path d="M310 368v40h580v-40M600 408v26" fill="none" stroke="#9AA9C5" stroke-width="3"/>
-  <rect x="40" y="434" width="1120" height="106" rx="18" fill="#10236E"/>
-  <text x="76" y="477" font-size="24" font-weight="700" fill="#FFFFFF">Gemeinsame Grundlage</text>
-  <g font-size="24" fill="#FFFFFF"><text x="76" y="515">Kontakte</text><text x="286" y="515">Organisationen</text><text x="574" y="515">Profile</text><text x="740" y="515">Rollen und Rechte</text></g>
+  <path d="M310 368v32h580v-32M600 400v24" fill="none" stroke="#9AA9C5" stroke-width="3"/>
+  <rect x="40" y="424" width="1120" height="176" rx="18" fill="url(#foundation-background)"/>
+  <path d="M504 424h192" fill="none" stroke="#00D95A" stroke-width="5" stroke-linecap="round"/>
+  <text x="600" y="466" text-anchor="middle" font-size="26" font-weight="700" fill="#FFFFFF">Gemeinsame Grundlage</text>
+  <g fill="#FFFFFF" fill-opacity=".06" stroke="#FFFFFF" stroke-opacity=".18">
+    <rect x="80" y="487" width="242" height="89" rx="12"/>
+    <rect x="346" y="487" width="242" height="89" rx="12"/>
+    <rect x="612" y="487" width="242" height="89" rx="12"/>
+    <rect x="878" y="487" width="242" height="89" rx="12"/>
+  </g>
+  <g class="foundation-icon" transform="translate(181 492)">
+    <circle cx="15" cy="12" r="6"/><path d="M4 34v-5a11 11 0 0 1 22 0v5M29 9a5 5 0 0 1 0 10M31 24a8 8 0 0 1 5 8v2"/>
+  </g>
+  <g class="foundation-icon" transform="translate(447 492)">
+    <rect x="8" y="5" width="24" height="30" rx="3"/><path d="M16 35v-8h8v8M15 12h2M23 12h2M15 19h2M23 19h2M4 35h32"/>
+  </g>
+  <g class="foundation-icon" transform="translate(713 492)">
+    <rect x="3" y="6" width="34" height="28" rx="4"/><circle cx="13" cy="16" r="4"/><path d="M7 28a6 6 0 0 1 12 0M25 14h6M25 21h6M25 28h4"/>
+  </g>
+  <g class="foundation-icon" transform="translate(979 492)">
+    <path d="m20 3 14 6v10c0 8-6 13-14 18C12 32 6 27 6 19V9ZM13 20l5 5 10-11"/>
+  </g>
+  <g font-size="24" fill="#FFFFFF" text-anchor="middle">
+    <text x="201" y="562">Kontakte</text><text x="467" y="562">Organisationen</text><text x="733" y="562">Profile</text><text x="999" y="562">Rechte</text>
+  </g>
 </svg>

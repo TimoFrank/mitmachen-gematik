@@ -14,11 +14,33 @@ Vor und nach dem Repository-Import den erwarteten Branch, vollständigen Commit-
 
 Der vorbereitende Stand erhält noch keinen Release-Tag. Der Herkunftsnachweis ist keine Signatur und bleibt mit `releaseEligible: false` gekennzeichnet. Vor einem späteren Release Quell-URL, Tagobjekt, Commit, Signatur und unabhängig bestätigten Fingerprint nachweisen. Private Signierschlüssel werden nicht übertragen.
 
+## Pflichtprüfung nach OWASP Top 10
+
+**Status: ausstehend.** Die Anwendung muss anhand der [OWASP Top 10:2025](https://top10.owasp.org/2025/de/) sicherheitsgeprüft werden. Diese Anforderung ist hier dokumentiert. Die eigentliche Prüfung erfolgt gesondert.
+
+| Risikogruppe | Zu prüfender Bereich |
+| --- | --- |
+| A01:2025 | Zugriffsrechte und Schutz vor unberechtigtem Datenzugriff |
+| A02:2025 | Sichere Konfiguration der Anwendung und Betriebsumgebung |
+| A03:2025 | Abhängigkeiten, Buildwerkzeuge und Auslieferungskette |
+| A04:2025 | Verschlüsselung, Schlüssel und Zertifikate |
+| A05:2025 | Eingabeprüfung und Schutz vor eingeschleustem Code oder Abfragen |
+| A06:2025 | Sicherheitsanforderungen im Anwendungsentwurf |
+| A07:2025 | Anmeldung, Identitätsprüfung und Sitzungen |
+| A08:2025 | Unveränderte Software, Daten und vertrauenswürdige Artefakte |
+| A09:2025 | Sicherheitsprotokolle und Alarmierung |
+| A10:2025 | Kontrollierte Behandlung von Fehlern und Ausnahmesituationen |
+
+Die Prüfung umfasst Oberfläche, API, Datenzugriffe, Buildkette und die vorgesehene Zielkonfiguration. Der spätere Nachweis nennt Katalogversion, Quellcommit, Artefaktdigests, Prüfumgebung, Datum, Befunde und Maßnahmen. Nicht anwendbare Punkte werden begründet. Zuständigkeit und Prüftermin sind noch festzulegen.
+
+Historische OWASP-Unterlagen des Originalprojekts sind keine aktuelle Prüfung dieses Repositorys. Vorhandene Einzeltests und erfolgreiche Builds ersetzen den vollständigen Nachweis nicht.
+
 ## Blockierende technische Gates
 
 | Prüfung | Verbindlicher Nachweis |
 | --- | --- |
 | Datenzugriff | Definierte API-Routen, serverseitige Rechte und Datenisolation |
+| OWASP Top 10 | Dokumentierte Prüfung aller zehn Risikogruppen für den konkreten Quellstand und die vorgesehene Zielkonfiguration |
 | Abhängigkeiten und Quellcode | Schwachstellen-, Signatur-, SAST- und Secret-Prüfungen ohne blockierende Befunde |
 | API-Image und Helm | Gepinnte Quellen, Non-Root-Containerstart, Health, gerenderte Konfiguration und Netzwerkgrenzen |
 | Komponenten und Artefakte | SBOM für Oberfläche und API, Bindung an Quellcommit und tatsächliche Digests |

@@ -19,13 +19,13 @@ Die Anwendung besteht aus einer Oberfläche im Browser, einer Node.js-API und ei
 
 Die API darf nur über das Gateway erreichbar sein. Der Browser verwaltet selbst keine Anmeldetokens. Der Plattformanschluss muss den beschriebenen Bearer-JWT-Vertrag erfüllen.
 
-## Datenbestand
+## Datenbestand und Kartenanzeige
 
-Zum Datenmodell gehören Organisationen, berufliche Kontakte, Profile und Rollen sowie Hospitationstermine, Framework-Zuordnungen, Beobachtungen und Auswertungsbezüge. Echte Fachdaten bleiben außerhalb von Git, Images, Buildmanifesten, Screenshots und technischen Prüfberichten.
+Zum Datenmodell gehören Organisationen, berufliche Kontakte, Profile und Rollen sowie Hospitationstermine, Framework-Zuordnungen, Beobachtungen und Auswertungsbezüge. Der Pilot verwendet von Beginn an echte berufliche Kontakte und Hospitationsinhalte. Technische Tests und Probeläufe nutzen davon getrennte synthetische Daten.
 
-Die erste Abnahme verwendet das geprüfte Schema und synthetische Daten. Eine spätere Datenübernahme benötigt bestätigte Datenklassen und prüft Abhängigkeiten, Mengen und Fingerprint. Quellbereitstellung und Datenübernahme sind getrennte Vorgänge.
+Dateien werden im vorgesehenen Einsatz nicht dauerhaft gespeichert. Übernommene Inhalte und Notizen werden in der Anwendungsdatenbank verarbeitet. Für die Kartenanzeige lädt der Browser Kartenkacheln von CARTO. Eine externe Fachdaten-Schnittstelle ist nicht vorgesehen.
 
-Kartenanbieter, Zielhosts, Lizenz, Schlüssel und übertragener Datenumfang sind vor Nutzung zu bestätigen. Neue Bild- und Datei-Uploads sind deaktiviert. Für vorhandene Dateien sind Speicher, Plattformwerte und Freigabe gesondert festzulegen. Der vorhandene Speicheradapter verwendet die GCS-API.
+Quellbereitstellung und Datenübernahme sind getrennte Vorgänge. Eine Datenübernahme prüft den vereinbarten Umfang, Abhängigkeiten, Mengen und Fingerprint. Echte Datensätze bleiben außerhalb von Git, Images, Buildmanifesten, Screenshots und technischen Prüfberichten. Aufbewahrung, Löschregeln und die Bewertung der Datenflüsse werden im internen Compliance-Check geführt.
 
 ## Technische Quellen
 
@@ -35,4 +35,4 @@ Kartenanbieter, Zielhosts, Lizenz, Schlüssel und übertragener Datenumfang sind
 - [Kubernetes-Konfiguration](../../deploy/helm/versorgungs-kompass/values-target-gematik.yaml)
 - [Referenzpipeline](../../deploy/jenkins/Jenkinsfile.gematik)
 
-Konkrete Zielwerte, Zugangsdaten und Abnahmeprotokolle werden geschützt geführt. [Betrieb](../betrieb-und-deployment/BETRIEB_GEMATIK.md) und [Security](../../SECURITY.md) beschreiben die Voraussetzungen.
+Konkrete Zielwerte, Zugangsdaten und Abnahmeprotokolle werden geschützt geführt. [Betrieb](../betrieb-und-deployment/BETRIEB_GEMATIK.md) und [Security](../../SECURITY.md) beschreiben die technischen Voraussetzungen.
