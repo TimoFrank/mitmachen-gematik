@@ -1,0 +1,51 @@
+{
+  "name": "versorgungs-kompass",
+  "version": "0.1.0",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "scripts": {
+    "check": "npm run check:target-release",
+    "qa:small": "node scripts/check_gematik_core_readiness.mjs && npm run test:import-source && git diff --check",
+    "qa:full": "npm run check:target-release && npm run test:gematik-ui",
+    "test:gematik-ui": "GEMATIK_CORE_ARTIFACT_PREFIX= npx playwright test --config=playwright.gematik.config.js",
+    "test:poc-smoke": "GEMATIK_CORE_ARTIFACT_PREFIX= npx playwright test --config=playwright.gematik.config.js",
+    "build:target": "node scripts/build_gematik_frontend.mjs --output dist/target --api-base-url \"$API_BASE_URL\"",
+    "build:api:target": "node api/build-target.mjs",
+    "check:target-readiness": "node scripts/check_gematik_core_readiness.mjs",
+    "check:gematik-core": "node scripts/check_gematik_core_readiness.mjs && node scripts/test_gematik_core_api.mjs && node scripts/test_gematik_core_api_container.mjs",
+    "test:deployment-separation:oidc": "node scripts/test_deployment_separation.mjs --oidc-only",
+    "test:target-config": "node scripts/test_target_frontend_config.mjs",
+    "test:duplicate-identity": "node scripts/test_duplicate_identity.mjs",
+    "test:hospitation-export": "node scripts/test_hospitation_document_export.mjs",
+    "test:hospitation-import-contract": "node scripts/test_hospitation_import_contract.mjs",
+    "test:frontend-sbom": "node scripts/test_frontend_sbom.mjs",
+    "test:security-evidence": "node scripts/test_security_evidence.mjs",
+    "test:target-release-source": "node scripts/test_target_release_source.mjs",
+    "check:docs-language": "node scripts/check_markdown_language.mjs",
+    "check:target-release": "npm run test:import-source && npm run test:deployment-preflight && npm run check:gematik-core && npm run check:docs-language && npm run test:deployment-separation:oidc && npm run test:target-config && npm run test:duplicate-identity && npm run test:hospitation-export && npm run test:hospitation-import-contract && npm run test:frontend-sbom && npm run test:security-evidence && npm run test:target-release-source",
+    "deploy:preflight": "node scripts/preflight_target_deployment.mjs",
+    "security:api-gateway": "node scripts/audit_api_gateway.mjs",
+    "verify:import": "node scripts/verify_import_source.mjs",
+    "manifest:import": "node scripts/update_import_manifest.mjs",
+    "test:import-source": "node scripts/test_import_source.mjs",
+    "build": "npm run build:target",
+    "test:deployment-preflight": "node scripts/test_core_deployment_preflight.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.62.1",
+    "esbuild": "0.28.1"
+  },
+  "dependencies": {
+    "leaflet": "1.9.4",
+    "mammoth": "1.12.0",
+    "pdfjs-dist": "6.2.108",
+    "pg": "8.21.0",
+    "xlsx-js-style": "1.2.0"
+  },
+  "overrides": {
+    "mammoth": {
+      "@xmldom/xmldom": "0.8.15"
+    }
+  }
+}

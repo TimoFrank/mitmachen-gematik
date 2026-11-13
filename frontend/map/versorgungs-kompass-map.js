@@ -1,0 +1,3621 @@
+  const MAP_PARAMS = new URLSearchParams(window.location.search);
+  const MAP_MESSAGE_VERSION = 1;
+  const MAP_MESSAGE_CHANNEL = String(MAP_PARAMS.get("channel") || "").trim();
+  const ALLOWED_MAP_MESSAGE_CHANNELS = new Set(["contacts", "stakeholders", "politics"]);
+  const sectorRegistry = window.VersorgungsCompassSectors || {
+    normalizeSector: (value, fallback = "") => String(value || "").trim() || fallback,
+    colorFor: () => "#64748b",
+    labels: () => ["Praxis", "Krankenhaus", "Apotheke", "Pflege", "Krankenkasse", "Labor", "Physio / Heilmittel", "Hebammen", "Notfallversorgung", "Reha", "Hilfsmittel", "Sozialdienst", "ÖGD"],
+    isExcludedSector: () => false,
+    fallbackColor: "#64748b"
+  };
+
+  function hasMapCoordinates(entry) {
+    return Number.isFinite(Number.parseFloat(entry?.lat ?? entry?.latitude ?? ""));
+  }
+
+  function loadCompassContacts() {
+    // Embedded maps receive their records from the authenticated parent or the
+    // standalone public demo via a validated same-origin postMessage payload.
+    return [];
+  }
+
+  function firstSource(contact) {
+    if (contact.url) return contact.url;
+    if (Array.isArray(contact.sources) && contact.sources.length) return contact.sources[0];
+    if (typeof contact.sources === "string" && contact.sources.trim()) return contact.sources.trim().split(/\s*\|\s*/)[0];
+    return "";
+  }
+
+  function ownerLabelFromProfiles(ownerId) {
+    return "";
+  }
+
+  function splitOwnerTokens(value) {
+    if (Array.isArray(value)) return value.flatMap(splitOwnerTokens);
+    if (value && typeof value === "object") return splitOwnerTokens(value.displayName || value.label || value.name || value.id || "");
+    return String(value || "")
+      .split(/[;,]/)
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  function contactOwnerIds(contact) {
+    const ids = Array.isArray(contact.ownerIds) ? contact.ownerIds : Array.isArray(contact.owner_ids) ? contact.owner_ids : [];
+    const legacyId = contact.ownerId || contact.owner_id || "";
+    return [...new Set([...ids, legacyId].map((id) => String(id || "").trim()).filter(Boolean))];
+  }
+
+  function contactOwnerLabels(contact) {
+    const ownerObjects = Array.isArray(contact.owners) ? contact.owners : [];
+    const labels = [
+      ...ownerObjects.map((owner) => owner.displayName || owner.label || owner.name || ""),
+      ...contactOwnerIds(contact).map(ownerLabelFromProfiles),
+      ...splitOwnerTokens(contact.owner)
+    ].map((label) => String(label || "").trim()).filter(Boolean);
+    return [...new Set(labels)];
+  }
+
+  function normalizeContactChannelAccess(value) {
+    return value === "owner" || value === "restricted" ? value : "";
+  }
+
+  function contactChannelsRestricted(contact) {
+    return normalizeContactChannelAccess(contact?.contactChannelAccess) === "restricted";
+  }
+
+  function toMapEntry(contact) {
+    const lat = Number.parseFloat(contact.lat ?? contact.latitude ?? "");
+    const lon = Number.parseFloat(contact.lon ?? contact.longitude ?? "");
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+    const personName = String(contact.name || contact.organization || "Kontakt").trim();
+
+    const ownerIds = contactOwnerIds(contact);
+    const ownerLabels = contactOwnerLabels(contact);
+    const ownerObjects = Array.isArray(contact.owners) ? contact.owners : [];
+    const firstOwner = ownerObjects[0] || {};
+    const contactChannelAccess = normalizeContactChannelAccess(contact.contactChannelAccess);
+    const channelsRestricted = contactChannelAccess === "restricted";
+
+    return {
+      id: contact.id || `${personName}-${lat}-${lon}`,
+      name: personName,
+      organization: contact.organization || "",
+      category: sectorRegistry.normalizeSector(contact.category || contact.sector || ""),
+      city: contact.city || String(contact.location || "").replace(/^\d{5}\s*/, "") || "-",
+      state: contact.state || "",
+      location: contact.location || "",
+      street: contact.street || "",
+      postal_code: contact.postalCode || contact.postal_code || String(contact.location || "").match(/\b\d{5}\b/)?.[0] || "",
+      lat,
+      lon,
+      mapPositionSource: contact.mapPositionSource || contact.map_position_source || "",
+      url: firstSource(contact),
+      description: contact.description || contact.topic || "",
+      note: contact.note || contact.notes || "",
+      person_name: personName,
+      person_title: contact.specialty || contact.title || "",
+      contact_role: contact.contactRole || contact.contact_role || contact.role || "",
+      email: channelsRestricted ? "" : contact.email || "",
+      phone: channelsRestricted ? "" : contact.phone || "",
+      contactChannelAccess,
+      linkedin: contact.linkedin || "",
+      priority: contact.priority || "",
+      owner: ownerLabels.join(", "),
+      ownerId: ownerIds[0] || contact.ownerId || contact.owner_id || "",
+      ownerIds,
+      ownerLabels,
+      owners: ownerObjects,
+      ownerAvatar: contact.ownerAvatar || contact.owner_avatar || contact.ownerAvatarUrl || firstOwner.avatarUrl || firstOwner.avatar_url || "",
+      themes: Array.isArray(contact.themes) ? contact.themes : String(contact.themes || "").split(/\s*\|\s*/).filter(Boolean),
+      image: contact.image || "",
+      updatedAt: contact.updatedAt || contact.updated_at || contact.createdAt || contact.created_at || "",
+      primary_system: "",
+      dq_hint: "",
+    };
+  }
+
+  const EMBED_MODE = MAP_PARAMS.get("embed") === "1";
+  const OVERVIEW_PREVIEW_MODE = EMBED_MODE && MAP_PARAMS.get("preview") === "1";
+  if (EMBED_MODE) document.body.classList.add("embed-mode");
+  if (OVERVIEW_PREVIEW_MODE) {
+    document.documentElement.classList.add("overview-preview-mode");
+    document.body.classList.add("overview-preview-mode");
+  }
+
+  function isInteractiveContactMap(){
+    return activeMapContext === "contacts" && !OVERVIEW_PREVIEW_MODE;
+  }
+
+  function usesQuietContactSelection(){
+    return EMBED_MODE && isInteractiveContactMap();
+  }
+
+  const BASE_DATA = loadCompassContacts().map(toMapEntry).filter(Boolean);
+  let currentEntries = BASE_DATA.slice();
+  let activeMapContext = ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)
+    ? MAP_MESSAGE_CHANNEL
+    : "contacts";
+  document.body.classList.toggle("contacts-map-context", activeMapContext === "contacts");
+  document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
+  let activeMapLabels = {};
+  let activeCurrentOwner = null;
+  let showOwnerFilter = true;
+  const CITY_LABELS = window.MAP_CITY_LABELS;
+  const STATE_LABELS = window.MAP_STATE_LABELS;
+  const STATE_POLYGONS = window.MAP_STATE_POLYGONS;
+  const DE_GEOJSON = window.MAP_STATE_COUNTRY_OUTLINE || window.MAP_DE_GEOJSON;
+  // Neighboring states share vertices. Simplifying each ring separately can split shared edges.
+  const STATE_BOUNDARY_SMOOTH_FACTOR = 0;
+  const CONTACT_MAP_BOUNDARY_COLOR = "#354364";
+  const STATE_BOUNDARY_ATTRIBUTION = `
+    <details class="map-boundary-source">
+      <summary>Bundeslandgrenzen</summary>
+      <div class="map-boundary-source__notice">
+        <p>© Die Bundeswahlleiterin, Statistisches Bundesamt, Wiesbaden 2024, Wahlkreiskarte für die Wahl zum 21. Deutschen Bundestag</p>
+        <p>Grundlage der Geoinformationen © Geobasis-DE / BKG 2024</p>
+        <p>Bundeslandflächen aus Wahlkreisgeometrien abgeleitet.</p>
+        <a href="https://www.bundeswahlleiterin.de/bundestagswahlen/2025/wahlkreiseinteilung/downloads.html" target="_blank" rel="noopener noreferrer">Quelle und Lizenz</a>
+      </div>
+    </details>`;
+  const AVATARS = {"Praxis": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.18%22%2F%3E%0A%3Ccircle%20cx%3D%2232%22%20cy%3D%2226%22%20r%3D%2210%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M14%2054c3-10%2011-16%2018-16s15%206%2018%2016%22%20fill%3D%22none%22%20stroke%3D%22%231f77b4%22%20stroke-width%3D%226%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M42%2018h6v6h-6zM44%2012h2v18h-2z%22%20fill%3D%22%231f77b4%22%20opacity%3D%220.48%22%2F%3E%0A%3C%2Fsvg%3E", "Krankenhaus": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%23d62728%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M20%2050V18c0-2%202-4%204-4h16c2%200%204%202%204%204v32%22%20fill%3D%22none%22%20stroke%3D%22%23d62728%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M26%2024h6v6h-6zm0%2010h6v6h-6zm12-10h6v6h-6zm0%2010h6v6h-6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.45%22%2F%3E%0A%3Cpath%20d%3D%22M30%2018h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%23d62728%22%20opacity%3D%220.50%22%2F%3E%0A%3C%2Fsvg%3E", "Apotheke": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.16%22%2F%3E%0A%3Cpath%20d%3D%22M22%2022h20v20H22z%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M30%2024h4v6h6v4h-6v6h-4v-6h-6v-4h6z%22%20fill%3D%22%232ca02c%22%20opacity%3D%220.50%22%2F%3E%0A%3Cpath%20d%3D%22M44%2022h2c2%200%204%202%204%204v16c0%202-2%204-4%204h-2%22%20fill%3D%22none%22%20stroke%3D%22%232ca02c%22%20stroke-width%3D%225%22%20opacity%3D%220.35%22%20stroke-linecap%3D%22round%22%2F%3E%0A%3C%2Fsvg%3E", "Pflege": "data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2264%22%20height%3D%2264%22%20viewBox%3D%220%200%2064%2064%22%3E%0A%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2232%22%20fill%3D%22%239467bd%22%20opacity%3D%220.16%22%2F%3E%0A%3Ccircle%20cx%3D%2226%22%20cy%3D%2226%22%20r%3D%228%22%20fill%3D%22%239467bd%22%20opacity%3D%220.52%22%2F%3E%0A%3Ccircle%20cx%3D%2240%22%20cy%3D%2228%22%20r%3D%226%22%20fill%3D%22%239467bd%22%20opacity%3D%220.36%22%2F%3E%0A%3Cpath%20d%3D%22M14%2052c2-9%208-14%2012-14s10%205%2012%2014%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.52%22%2F%3E%0A%3Cpath%20d%3D%22M34%2052c1-7%205-11%208-11s7%204%208%2011%22%20fill%3D%22none%22%20stroke%3D%22%239467bd%22%20stroke-width%3D%225%22%20stroke-linecap%3D%22round%22%20opacity%3D%220.36%22%2F%3E%0A%3C%2Fsvg%3E"};
+
+  const POLITICS_CATEGORY_COLORS = Object.freeze({
+    "CDU/CSU": "#262b33",
+    "AfD": "#087bb8",
+    "SPD": "#d71920",
+    "Bündnis 90/Die Grünen": "#13833b",
+    "Die Linke": "#a52b68"
+  });
+
+  function mapCategoryColor(category) {
+    if (activeMapContext === "politics" && POLITICS_CATEGORY_COLORS[category]) {
+      return POLITICS_CATEGORY_COLORS[category];
+    }
+    return sectorRegistry.colorFor(category);
+  }
+
+  // Minimal basemap WITHOUT labels; the CRM overlays carry the important information.
+  const MAP_MIN_ZOOM = 6;
+  const MOBILE_MAP_MIN_ZOOM = 4.5;
+  const MAP_MAX_ZOOM = 11;
+  const STATE_MAP_MAX_ZOOM = 12;
+  const MAP_WHEEL_PX_PER_ZOOM = 140;
+  const CONTACT_MAP_ZOOM_SNAP = 0.25;
+  const CONTACT_MAP_WHEEL_PX_PER_ZOOM = 80;
+  const mapMotionPreference = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const IS_PUBLIC_DEMO = window.VERSORGUNGS_COMPASS_CONFIG?.dataMode === "demo";
+  const CARTO_KEY = window.VERSORGUNGS_COMPASS_CONFIG?.cartoBasemapApiKey || "";
+  const CARTO_TILE_URL = 'https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png'
+    + (CARTO_KEY ? `?key=${encodeURIComponent(CARTO_KEY)}` : "");
+  const CARTO_ATTRIBUTION = '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>';
+  function currentMapMinZoom(){
+    if (OVERVIEW_PREVIEW_MODE) return 2.5;
+    return window.matchMedia('(max-width: 760px)').matches ? MOBILE_MAP_MIN_ZOOM : MAP_MIN_ZOOM;
+  }
+
+  function germanyFitPaddingRatio(){
+    if (OVERVIEW_PREVIEW_MODE) return window.innerHeight <= 380 ? 0.05 : 0.03;
+    return window.matchMedia('(max-width: 760px)').matches ? 0.05 : 0.2;
+  }
+
+  function germanyFitOptions({ animate = true } = {}){
+    const options = { animate: animate && !OVERVIEW_PREVIEW_MODE && !mapMotionPreference.matches };
+    if (!OVERVIEW_PREVIEW_MODE) return options;
+    const verticalPadding = window.innerHeight <= 380 ? 12 : 20;
+    options.paddingTopLeft = [0, verticalPadding];
+    options.paddingBottomRight = [0, verticalPadding];
+    return options;
+  }
+
+  const map = L.map('map', {
+    attributionControl: !OVERVIEW_PREVIEW_MODE,
+    zoomControl: !OVERVIEW_PREVIEW_MODE,
+    dragging: !OVERVIEW_PREVIEW_MODE,
+    scrollWheelZoom: !OVERVIEW_PREVIEW_MODE && !isInteractiveContactMap() && !isMobileLayout(),
+    touchZoom: !OVERVIEW_PREVIEW_MODE,
+    doubleClickZoom: !OVERVIEW_PREVIEW_MODE,
+    boxZoom: !OVERVIEW_PREVIEW_MODE,
+    keyboard: !OVERVIEW_PREVIEW_MODE,
+    zoomAnimation: !mapMotionPreference.matches,
+    zoomSnap: OVERVIEW_PREVIEW_MODE ? 0.1 : (isInteractiveContactMap() ? CONTACT_MAP_ZOOM_SNAP : 0.5),
+    zoomDelta: 0.5,
+    wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM,
+    maxBoundsViscosity: 1
+  });
+
+  function installContactMapZoom(){
+    const container = map.getContainer();
+    let queuedZoom = 0;
+    let anchor = null;
+    let frame = 0;
+    let zooming = false;
+    let wheelRemainder = 0;
+    let lastWheelAt = 0;
+
+    function scheduleZoom(){
+      if (zooming || frame || !queuedZoom) return;
+      frame = requestAnimationFrame(() => {
+        frame = 0;
+        if (zooming) return;
+        const zoom = Math.max(map.getMinZoom(), Math.min(map.getMaxZoom(), map.getZoom() + queuedZoom));
+        queuedZoom = 0;
+        if (zoom === map.getZoom()) return;
+        const options = { animate: !mapMotionPreference.matches };
+        if (anchor) map.setZoomAround(anchor, zoom, options);
+        else map.setZoom(zoom, options);
+      });
+    }
+
+    function queueZoom(step, point = null){
+      const current = map.getZoom();
+      queuedZoom = Math.max(map.getMinZoom() - current, Math.min(map.getMaxZoom() - current, queuedZoom + step));
+      anchor = point;
+      scheduleZoom();
+    }
+
+    map.on('zoomstart', () => { zooming = true; });
+    map.on('zoomend', () => {
+      zooming = false;
+      scheduleZoom();
+    });
+
+    container.addEventListener('wheel', (event) => {
+      if (isMobileLayout() || event.defaultPrevented) return;
+      const direction = L.DomEvent.getWheelDelta(event);
+      const target = map.getZoom() + queuedZoom;
+      if (!direction || (direction > 0 ? target >= map.getMaxZoom() : target <= map.getMinZoom())) {
+        wheelRemainder = 0;
+        return;
+      }
+      event.preventDefault();
+      if (event.timeStamp - lastWheelAt > 180) wheelRemainder = 0;
+      lastWheelAt = event.timeStamp;
+      wheelRemainder += direction / CONTACT_MAP_WHEEL_PX_PER_ZOOM;
+      const steps = Math.round(Math.abs(wheelRemainder) / CONTACT_MAP_ZOOM_SNAP);
+      if (!steps) return;
+      const step = Math.sign(wheelRemainder) * steps * CONTACT_MAP_ZOOM_SNAP;
+      wheelRemainder -= step;
+      queueZoom(step, map.mouseEventToContainerPoint(event));
+    }, { passive: false });
+
+    // The native control ignores clicks during an animation. Keep its buttons
+    // and their accessibility state, but accumulate each click as zoom intent.
+    map.zoomControl.getContainer().addEventListener('click', (event) => {
+      const button = event.target.closest('.leaflet-control-zoom-in, .leaflet-control-zoom-out');
+      if (!button) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const direction = button.classList.contains('leaflet-control-zoom-in') ? 1 : -1;
+      queueZoom(direction * map.options.zoomDelta * (event.shiftKey ? 3 : 1));
+      if (event.screenX > 0 && event.screenY > 0) container.focus({ preventScroll: true });
+    }, true);
+  }
+
+  if (isInteractiveContactMap()) installContactMapZoom();
+
+  const OVERVIEW_ATLAS_PANE = "careOverviewAtlas";
+  if (OVERVIEW_PREVIEW_MODE) {
+    const atlasPane = map.createPane(OVERVIEW_ATLAS_PANE);
+    atlasPane.classList.add("care-overview-atlas-pane");
+    atlasPane.style.zIndex = "430";
+  }
+
+  if (!IS_PUBLIC_DEMO) {
+    if (!OVERVIEW_PREVIEW_MODE) {
+      L.tileLayer(CARTO_TILE_URL, {
+        subdomains: 'abcd',
+        maxZoom: MAP_MAX_ZOOM,
+        opacity: 0.58,
+        referrerPolicy: CARTO_KEY ? "origin" : "no-referrer",
+        attribution: CARTO_ATTRIBUTION
+      }).addTo(map);
+    }
+  }
+
+  const neighborsPane = map.createPane("mapNeighbors");
+  neighborsPane.style.zIndex = "250";
+  neighborsPane.style.pointerEvents = "none";
+  const neighboringCountries = L.geoJSON(window.MAP_EUROPE_CONTEXT, {
+    pane: "mapNeighbors",
+    className: "map-neighbor-country",
+    attribution: "Natural Earth",
+    style: {
+      color: "#bac9c8",
+      weight: 1,
+      fillColor: "#e0e8e5",
+      fillOpacity: IS_PUBLIC_DEMO ? 0.95 : 0.35
+    },
+    interactive: false
+  });
+  const europeLandContext = L.layerGroup([
+    L.geoJSON(window.MAP_EUROPE_LAND, {
+      pane: "mapNeighbors",
+      attribution: "Natural Earth",
+      stroke: false,
+      fillColor: "#e0e8e5",
+      fillOpacity: IS_PUBLIC_DEMO ? 1 : 0.8,
+      interactive: false
+    }),
+    L.geoJSON(window.MAP_EUROPE_INNER_BORDERS, {
+      pane: "mapNeighbors",
+      color: "#c1cecb",
+      weight: 1,
+      interactive: false
+    })
+  ]);
+
+  // ---- Build exact Germany mask (inverse polygon) ----
+  function toLatLngs(ringLngLat){
+    // ring is [ [lng,lat], ... ]
+    return ringLngLat.map(pt => [pt[1], pt[0]]);
+  }
+
+  function germanyPolygons(featureCollection){
+    const geom = featureCollection.features[0].geometry;
+    return geom.type === "Polygon" ? [geom.coordinates] : geom.coordinates;
+  }
+
+  function germanyOuterRings(featureCollection){
+    return germanyPolygons(featureCollection).map(([outerRing]) => toLatLngs(outerRing));
+  }
+
+  const worldRing = [[-90,-180],[-90,180],[90,180],[90,-180]];
+  const holes = germanyOuterRings(DE_GEOJSON);
+
+  // Keep neighboring countries as a soft orientation cue without making them the working context.
+  const mask = L.polygon([worldRing, ...holes], {
+    smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+    stroke: false,
+    fillColor: OVERVIEW_PREVIEW_MODE ? '#071846' : '#f3f6fb',
+    fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.22 : 0.28,
+    interactive: false
+  }).addTo(map);
+
+  // Germany outline and soft surface emphasis.
+  const germanyLayer = L.geoJSON(DE_GEOJSON, {
+    smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+    attribution: STATE_BOUNDARY_ATTRIBUTION,
+    style: () => isInteractiveContactMap()
+      ? { color: "#87999e", weight: 1.25, fillColor: "#f8fafb", fillOpacity: 0.92 }
+      : {
+          color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.78)' : 'rgba(23,39,95,0.30)',
+          weight: OVERVIEW_PREVIEW_MODE ? 1.4 : 1.15,
+          fillColor: OVERVIEW_PREVIEW_MODE ? '#0b2f74' : 'rgba(238,244,255,0.78)',
+          fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.12 : 0.34
+        },
+    interactive: false
+  }).addTo(map);
+
+  const stateBoundaryPane = map.createPane("mapStateBoundaries");
+  stateBoundaryPane.style.zIndex = "415";
+  stateBoundaryPane.style.pointerEvents = "none";
+  // One opaque line follows each inner and outer edge. The matching dark
+  // backplate keeps the base map out of antialiased joins between fills.
+  const contactStateBoundaries = L.geoJSON({
+    type: "MultiLineString",
+    coordinates: [
+      ...(window.MAP_STATE_INNER_BORDERS?.coordinates || []),
+      ...germanyPolygons(DE_GEOJSON).flat()
+    ]
+  }, {
+    pane: "mapStateBoundaries",
+    className: "map-state-boundaries",
+    smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+    color: CONTACT_MAP_BOUNDARY_COLOR,
+    weight: 1.45,
+    interactive: false
+  });
+
+  const BASE_STATE_SURFACE_STYLE = {
+    color: OVERVIEW_PREVIEW_MODE ? 'rgba(222,245,255,0.48)' : 'rgba(1,14,82,0.22)',
+    weight: OVERVIEW_PREVIEW_MODE ? 1.1 : 0.85,
+    fillColor: '#155fe4',
+    fillOpacity: OVERVIEW_PREVIEW_MODE ? 0.08 : 0.16,
+    opacity: 1
+  };
+
+  const stateSurfaceLayer = L.geoJSON(STATE_POLYGONS, {
+    smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+    style: () => ({ ...BASE_STATE_SURFACE_STYLE }),
+    interactive: false
+  }).addTo(map);
+
+  // Fit to Germany bounds and keep focus tight
+  const deBounds = germanyLayer.getBounds();
+  map.fitBounds(deBounds.pad(germanyFitPaddingRatio()), germanyFitOptions({ animate: false }));
+  map.setZoom(Math.min(map.getZoom(), MAP_MAX_ZOOM));
+  map.setMaxBounds(deBounds.pad(0.35));
+  map.setMinZoom(currentMapMinZoom());
+  map.setMaxZoom(MAP_MAX_ZOOM);
+
+  // ---- Custom labels (major cities + state capitals) ----
+  // Basemap is "nolabels" to reduce noise; we add a curated set for orientation.
+  const majorLabelLayer = L.layerGroup();
+  const capitalLabelLayer = L.layerGroup();
+  const stateLabelLayer = L.layerGroup();
+  const extraLabelLayer = L.layerGroup();
+  const moreLabelLayer = L.layerGroup();
+  const contactCityLabelLayer = L.layerGroup();
+  const visibleContactCityLabels = new Map();
+  const contactCityAliases = new Map([
+    ["frankfurt a m", "frankfurt am main"],
+    ["frankfurt an der oder", "frankfurt oder"],
+    ["brandenburg a d havel", "brandenburg an der havel"],
+    ["halle an der saale", "halle saale"],
+    ["freiburg im breisgau", "freiburg"]
+  ]);
+  const contactCityCandidates = isInteractiveContactMap() ? buildContactCityCandidates() : [];
+  const curatedContactCities = new Map(contactCityCandidates.map((city) => [city.key, city]));
+  let contactCityGroups = [];
+  if (isInteractiveContactMap()) {
+    const labelPane = map.createPane("contactCityLabels");
+    labelPane.style.zIndex = "570";
+    labelPane.style.pointerEvents = "none";
+    contactCityLabelLayer.addTo(map);
+  }
+  let stateHeatLayer = null;
+  const stateHeatCountLayer = L.layerGroup();
+  let stateInteractionLayer = null;
+  let heatMapActive = OVERVIEW_PREVIEW_MODE;
+  let gematikMarkerModeActive = !OVERVIEW_PREVIEW_MODE && !isInteractiveContactMap();
+  let clusterModeActive = false;
+  let selectedState = "";
+  let stateCountsByKey = {};
+  let stateCountMax = 0;
+
+  function fitMapToState(name){
+    const feature = stateFeature(name);
+    if (!feature) return;
+    const bounds = L.geoJSON(feature).getBounds();
+    map.fitBounds(bounds.pad(0.07), {
+      animate: !mapMotionPreference.matches,
+      maxZoom: 9,
+      padding: isMobileLayout() ? [20, 30] : [36, 40]
+    });
+  }
+
+  function isContactSectorMode(){
+    return isInteractiveContactMap() && !gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+  }
+
+  function stateInteractionStyle(name, hover = false){
+    const active = selectedState === name;
+    if (isContactSectorMode()) {
+      const total = stateCountsByKey[stateNameKey(name)] || 0;
+      return {
+        stroke: active,
+        color: "#00ff65",
+        weight: 3,
+        lineCap: "round",
+        lineJoin: "round",
+        fillColor: heatColor(total, stateCountMax),
+        fillOpacity: 1,
+        interactive: false
+      };
+    }
+    if (isInteractiveContactMap()) {
+      return {
+        color: active || hover ? "#13784a" : "#bac8ce",
+        weight: active ? 2 : (hover ? 1.5 : 0.8),
+        fillColor: "#20a86b",
+        fillOpacity: active ? 0.18 : (hover ? 0.1 : 0.01),
+        interactive: true
+      };
+    }
+    if (gematikMarkerModeActive && !heatMapActive) {
+      const total = stateCountsByKey[stateNameKey(name)] || 0;
+      return {
+        color: active ? '#010e52' : (hover ? '#010e52' : 'rgba(1,14,82,0.20)'),
+        weight: active ? 2.6 : (hover ? 2 : 1.1),
+        lineCap: 'round',
+        lineJoin: 'round',
+        fillColor: heatColor(total, stateCountMax),
+        fillOpacity: 1,
+        interactive: true
+      };
+    }
+    return {
+      color: active ? '#010e52' : (hover ? '#155fe4' : 'rgba(1,14,82,0.14)'),
+      weight: active ? 2.6 : (hover ? 2 : 0.8),
+      fillColor: active ? '#010e52' : '#155fe4',
+      fillOpacity: active ? 0.34 : (hover ? 0.18 : 0.02),
+      interactive: true
+    };
+  }
+
+  function setStateLabelHover(name, highlighted){
+    stateLabelLayer.eachLayer((labelMarker) => {
+      const label = labelMarker.getElement()?.querySelector('.state-label');
+      if (!label) return;
+      const matchesState = label.dataset.state === String(name || "");
+      label.classList.toggle('is-state-hovered', Boolean(highlighted && matchesState));
+    });
+  }
+
+  function stateHoverTooltipHtml(name, total){
+    const itemLabel = total === 1
+      ? mapLabel("itemSingular", "Kontakt")
+      : mapLabel("itemPlural", "Kontakte");
+    return `<span class="state-hover-tooltip__name">${escapeHtml(name)}</span><span class="state-hover-tooltip__count">${total} ${escapeHtml(itemLabel)}</span>`;
+  }
+
+  function highlightContactState(name, highlighted){
+    if (!stateInteractionLayer || !name || heatMapActive || isContactSectorMode()) return;
+    setStateLabelHover(name, highlighted);
+    stateInteractionLayer.eachLayer((layer) => {
+      if (layer.feature?.properties?.name !== name) return;
+      layer.setStyle(stateInteractionStyle(name, highlighted));
+      if (highlighted && !L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+        layer.bringToFront();
+      }
+    });
+  }
+
+  function refreshStateInteractionLayer(){
+    if (stateInteractionLayer) {
+      map.removeLayer(stateInteractionLayer);
+      stateInteractionLayer = null;
+    }
+
+    stateInteractionLayer = L.geoJSON(STATE_POLYGONS, {
+      pane: 'overlayPane',
+      smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+      style: (feature) => stateInteractionStyle(feature.properties.name),
+      onEachFeature: (feature, layer) => {
+        if (isContactSectorMode()) return;
+        const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
+          direction: "top",
+          offset: [0, -12],
+          sticky: true,
+          opacity: 1
+        });
+        layer.on('mouseover', () => {
+          if (heatMapActive) return;
+          layer.setStyle(stateInteractionStyle(name, true));
+          setStateLabelHover(name, true);
+        });
+        layer.on('mouseout', () => {
+          if (!stateInteractionLayer) return;
+          stateInteractionLayer.resetStyle(layer);
+          layer.setStyle(stateInteractionStyle(name));
+          setStateLabelHover(name, false);
+        });
+        layer.on('click', () => {
+          const nextState = selectedState === name ? "" : name;
+          setSelectedState(nextState);
+        });
+      }
+    });
+
+    if (!heatMapActive) {
+      stateInteractionLayer.addTo(map);
+    }
+  }
+  let stateMap = null;
+  let stateMapTiles = null;
+  let stateMapOutline = null;
+  let stateMapMarkers = null;
+  let stateMapMask = null;
+  let stateMapGermanyOutline = null;
+  let stateMapCityLabels = null;
+  let stateMapStateLabel = null;
+
+  function heatColor(value, max){
+    const stops = [
+      [219, 228, 239],
+      [115, 122, 160],
+      [77, 86, 134],
+      [39, 52, 107],
+      [1, 14, 82]
+    ];
+    if (max <= 0 || value <= 0) return `rgb(${stops[0].join(", ")})`;
+    const ratio = Math.max(0, Math.min(1, value / max));
+    const easedRatio = Math.pow(ratio, 1.12);
+    const scaledRatio = easedRatio * (stops.length - 1);
+    const stopIndex = Math.min(stops.length - 2, Math.floor(scaledRatio));
+    const localRatio = scaledRatio - stopIndex;
+    const start = stops[stopIndex];
+    const end = stops[stopIndex + 1];
+    const channel = (index) => Math.round(start[index] + ((end[index] - start[index]) * localRatio));
+    return `rgb(${channel(0)}, ${channel(1)}, ${channel(2)})`;
+  }
+
+  function updateStateCounts(entries = currentEntries){
+    stateCountsByKey = entries.reduce((acc, entry) => {
+      const key = stateNameKey(entry.state);
+      if (!key) return acc;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    stateCountMax = Object.values(stateCountsByKey).reduce((acc, total) => Math.max(acc, total), 0);
+  }
+
+  function stateNameKey(value){
+    return normalize(value)
+      .replace(/ä/g, "ae")
+      .replace(/ö/g, "oe")
+      .replace(/ü/g, "ue")
+      .replace(/ß/g, "ss");
+  }
+
+  function overviewSchematicDefinition(){
+    const definition = window.MAP_STATE_PATHS_OVERVIEW;
+    const states = Array.isArray(definition?.states) ? definition.states : [];
+    const expectedNames = new Set((STATE_LABELS || []).map((state) => state.name));
+    const names = new Set(states.map((state) => state?.name));
+    const referenceIds = new Set(states.map((state) => state?.referenceId));
+    const valid = definition?.viewBox === "0 0 652 848"
+      && states.length === 16
+      && names.size === 16
+      && referenceIds.size === 16
+      && states.every((state) => expectedNames.has(state.name) && String(state.path || "").trim());
+    return valid ? definition : null;
+  }
+
+  const OVERVIEW_SCHEMATIC_LABEL_POSITIONS = Object.freeze({
+    bayern: { x: 412.4, metricY: 688.064, nameY: 713.064 },
+    bawue: { x: 191.6, metricY: 733.064, nameY: 758.064 },
+    thue: { x: 374.3, metricY: 494.064, nameY: 519.064 },
+    hessen: { x: 236, metricY: 507.064, nameY: 532.064 },
+    rheinpf: { x: 144.4, metricY: 585.064, nameY: 610.064 },
+    nrw: { x: 112.6, metricY: 424.064, nameY: 449.064 },
+    nieders: { x: 282.6, metricY: 280.064, nameY: 305.064 },
+    bremen: { x: 218.7, metricY: 239.064, nameY: 264.064 },
+    saar: { x: 97.8, metricY: 653.064, nameY: 678.064 },
+    brandenburg: { x: 591.2, metricY: 371.064, nameY: 396.064 },
+    sachs: { x: 547.6, metricY: 473.064, nameY: 498.064 },
+    sachan: { x: 447, metricY: 380.064, nameY: 405.064 },
+    mcpom: { x: 495.9, metricY: 158.064, nameY: 183.064 },
+    schlehol: { x: 348.1, metricY: 109.064, nameY: 134.064 },
+    hamburg: { x: 307.9, metricY: 183.043, nameY: 208.043 },
+    berlin: { x: 528.8, metricY: 307.924, nameY: 332.924 }
+  });
+
+  function renderOverviewSchematicMap(){
+    if (!OVERVIEW_PREVIEW_MODE) return;
+    const mapNode = document.getElementById("map");
+    let svg = mapNode?.querySelector(".care-overview-schematic-map");
+    if (!mapNode) return;
+    const definition = overviewSchematicDefinition();
+    if (!definition) {
+      svg?.remove();
+      mapNode.querySelector(".care-overview-state-tooltip")?.remove();
+      document.body.classList.remove("has-overview-schematic-map");
+      return;
+    }
+    mapNode.querySelector(".care-overview-state-tooltip")?.remove();
+    if (!svg) {
+      svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("care-overview-schematic-map");
+      svg.setAttribute("width", "652");
+      svg.setAttribute("height", "848");
+      svg.setAttribute("viewBox", definition.viewBox);
+      svg.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      svg.setAttribute("aria-hidden", "true");
+      svg.setAttribute("focusable", "false");
+      svg.dataset.pathSha256 = definition.pathSha256;
+      const definitions = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      const clipPath = document.createElementNS("http://www.w3.org/2000/svg", "clipPath");
+      clipPath.id = "clip0_46_885";
+      const clipRectangle = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      clipRectangle.setAttribute("width", "652");
+      clipRectangle.setAttribute("height", "848");
+      clipPath.append(clipRectangle);
+      definitions.append(clipPath);
+      const stateGroup = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      stateGroup.id = "gem-dkart-map";
+      stateGroup.classList.add("care-overview-schematic-map__states");
+      stateGroup.setAttribute("clip-path", "url(#clip0_46_885)");
+      definition.states.forEach((state) => {
+        const labelPosition = OVERVIEW_SCHEMATIC_LABEL_POSITIONS[state.referenceId];
+        const stateWrapper = document.createElementNS("http://www.w3.org/2000/svg", "g");
+        stateWrapper.classList.add("care-overview-schematic-map__state-group");
+        stateWrapper.dataset.state = state.name;
+        stateWrapper.dataset.referenceId = state.referenceId;
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.classList.add("care-overview-schematic-map__state");
+        path.dataset.state = state.name;
+        path.dataset.geometry = state.kind;
+        path.dataset.referenceId = state.referenceId;
+        path.setAttribute("d", state.path);
+        const label = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        label.classList.add("care-overview-schematic-map__label");
+        label.setAttribute("aria-hidden", "true");
+        const metric = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        metric.classList.add("care-overview-schematic-map__label-metric");
+        metric.setAttribute("x", String(labelPosition.x));
+        metric.setAttribute("y", String(labelPosition.metricY));
+        const name = document.createElementNS("http://www.w3.org/2000/svg", "tspan");
+        name.classList.add("care-overview-schematic-map__label-name");
+        name.setAttribute("x", String(labelPosition.x));
+        name.setAttribute("y", String(labelPosition.nameY));
+        name.textContent = state.name;
+        label.append(metric, name);
+        stateWrapper.append(path, label);
+        stateGroup.append(stateWrapper);
+      });
+      svg.append(definitions, stateGroup);
+      mapNode.append(svg);
+    }
+    document.body.classList.add("has-overview-schematic-map");
+    svg.querySelectorAll(".care-overview-schematic-map__state-group").forEach((stateWrapper) => {
+      const path = stateWrapper.querySelector(".care-overview-schematic-map__state");
+      const total = stateCountsByKey[stateNameKey(path.dataset.state)] || 0;
+      const itemLabel = total === 1
+        ? mapLabel("itemSingular", "Kontakt")
+        : mapLabel("itemPlural", "Kontakte");
+      path.dataset.contactCount = String(total);
+      path.setAttribute("fill", heatColor(total, stateCountMax));
+      stateWrapper.querySelector(".care-overview-schematic-map__label-metric").textContent = `${total} ${itemLabel}`;
+    });
+  }
+
+  function stateLabelPosition(name){
+    const configured = STATE_LABELS.find((state) => state.name === name);
+    if (configured) return [configured.lat, configured.lon];
+    const feature = STATE_POLYGONS.features.find((entry) => entry.properties.name === name);
+    if (!feature) return null;
+    return L.geoJSON(feature).getBounds().getCenter();
+  }
+
+  function stateFeature(name){
+    return STATE_POLYGONS.features.find((entry) => entry.properties.name === name) || null;
+  }
+
+  function stateLabelCorner(name){
+    const feature = stateFeature(name);
+    if (!feature) return null;
+    const bounds = L.geoJSON(feature).getBounds();
+    const north = bounds.getNorth();
+    const south = bounds.getSouth();
+    const east = bounds.getEast();
+    const west = bounds.getWest();
+    return [south + ((north - south) * 0.20), west + ((east - west) * 0.20)];
+  }
+
+  function stateLabelHtml(name, total = null, heat = false){
+    const count = total && total > 0 ? `<span class="state-heat-count">${total}</span>` : "";
+    const heatClass = heat ? " state-label-heat" : "";
+    return `<div class="state-label-frame"><div class="state-label${heatClass}" data-state="${escapeHtml(name)}"><span class="state-label-text">${escapeHtml(name)}</span>${count}</div></div>`;
+  }
+
+  function buildStateHeatLayer(entries = currentEntries){
+    if (stateHeatLayer) {
+      stateHeatLayer.remove();
+    }
+    stateHeatCountLayer.clearLayers();
+    updateStateCounts(entries);
+    renderOverviewSchematicMap();
+
+    stateHeatLayer = L.geoJSON(STATE_POLYGONS, {
+      pane: OVERVIEW_PREVIEW_MODE ? OVERVIEW_ATLAS_PANE : "overlayPane",
+      smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+      style: (feature) => {
+        const total = stateCountsByKey[stateNameKey(feature.properties.name)] || 0;
+        const fill = heatColor(total, stateCountMax);
+        return {
+          stroke: !isInteractiveContactMap(),
+          color: OVERVIEW_PREVIEW_MODE ? 'rgba(224,247,255,0.82)' : 'rgba(1,14,82,0.20)',
+          weight: OVERVIEW_PREVIEW_MODE ? 1.35 : 1.1,
+          lineCap: 'round',
+          lineJoin: 'round',
+          fillColor: fill,
+          fillOpacity: 1,
+          interactive: !OVERVIEW_PREVIEW_MODE
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        if (OVERVIEW_PREVIEW_MODE) return;
+        const name = feature.properties.name;
+        const total = stateCountsByKey[stateNameKey(name)] || 0;
+        layer.bindTooltip(stateHoverTooltipHtml(name, total), {
+          className: "state-heat-tooltip state-hover-tooltip",
+          direction: "top",
+          offset: [0, -12],
+          sticky: true,
+          opacity: 1
+        });
+        layer.on('click', () => {
+          const nextState = selectedState === feature.properties.name ? "" : feature.properties.name;
+          setSelectedState(nextState, { fitBounds: usesQuietContactSelection() && Boolean(nextState) });
+          if (!nextState && usesQuietContactSelection()) fitMapToGermany();
+        });
+        layer.on('mouseover', () => {
+          layer.setStyle({
+            stroke: true,
+            weight: isInteractiveContactMap() ? 3 : 2,
+            color: '#010e52',
+            fillColor: heatColor(total, stateCountMax),
+            fillOpacity: 1
+          });
+          layer.bringToFront();
+          layer.openTooltip();
+        });
+        layer.on('mouseout', () => {
+          stateHeatLayer.resetStyle(layer);
+          layer.closeTooltip();
+        });
+      }
+    });
+
+    if (heatMapActive) {
+      stateHeatLayer.addTo(map);
+    }
+  }
+
+  function labelIcon(text, cls){
+    const isState = (cls === "state-label");
+    const klass = isState ? "state-label" : ("city-label " + cls);
+    return L.divIcon({
+      className: '',
+      html: isState
+        ? `<div class="state-label-frame"><div class="${klass}" data-state="${escapeHtml(text)}"><span class="state-label-text">${escapeHtml(text)}</span></div></div>`
+        : `<div class="label-anchor"><div class="${klass}">${escapeHtml(text)}</div></div>`,
+      iconSize: isState ? [160, 42] : null,
+      iconAnchor: isState ? [80, 21] : undefined
+    });
+  }
+
+  function cityLabelKey(name){
+    const key = name.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase()
+      .replace(/ß/g, "ss").replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    return contactCityAliases.get(key) || key;
+  }
+
+  function buildContactCityCandidates(){
+    const regionalCenters = new Set(["Kassel", "Braunschweig", "Lübeck", "Augsburg", "Mannheim", "Karlsruhe", "Freiburg", "Rostock", "Chemnitz", "Halle (Saale)"]);
+    const regionalAnchors = new Set(["Marburg", "Eisenach"]);
+    const places = [...CITY_LABELS.more, ...CITY_LABELS.extra];
+    const regionalCities = places.filter(({ name }) => regionalCenters.has(name));
+    // Fill regional orientation gaps after capitals and larger cities have claimed their space.
+    const regionalAnchorCities = places.filter(({ name }) => regionalAnchors.has(name));
+    const tiers = [
+      { zoom: 7.5, kind: "primary", cities: CITY_LABELS.major.slice(0, 8) },
+      { zoom: 8.5, kind: "regional", cities: [...CITY_LABELS.capitals, ...CITY_LABELS.major, ...regionalCities, ...regionalAnchorCities] },
+      { zoom: 9.5, kind: "local", cities: [...CITY_LABELS.more.slice(0, 34), ...CITY_LABELS.extra.slice(0, 15)] },
+      { zoom: 10.5, kind: "local", cities: [...CITY_LABELS.extra, ...CITY_LABELS.more] }
+    ];
+    const names = new Set();
+    return tiers.flatMap(({ zoom, kind, cities }) => cities.flatMap((city) => {
+      const key = cityLabelKey(city.name);
+      if (names.has(key)) return [];
+      names.add(key);
+      return [{ ...city, key, zoom, kind }];
+    }));
+  }
+
+  function groupContactCities(entries){
+    const groups = new Map();
+    for (const entry of entries) {
+      const name = String(entry.city || "").replace(/^(?:D[- ]?)?\d{5}\s+/i, "").trim().replace(/\s+/g, " ");
+      const key = cityLabelKey(name);
+      if (!key || name.length > 70 || /\d/.test(name) || /^(?:unbekannt|keine angabe|nicht dokumentiert|n a|deutschland)$/.test(key)) continue;
+      const groupKey = `${key}|${cityLabelKey(String(entry.state || ""))}`;
+      if (!groups.has(groupKey)) groups.set(groupKey, { key, entries: [] });
+      groups.get(groupKey).entries.push({ id: entry.id, name, latLng: L.latLng(entry.lat, entry.lon), source: entry.mapPositionSource });
+    }
+    return [...groups.values()];
+  }
+
+  function visibleContactCityCandidates(){
+    const bounds = map.getBounds();
+    const labels = [];
+    for (const { key, entries } of contactCityGroups) {
+      const inView = entries.filter(({ latLng }) => bounds.contains(latLng));
+      if (!inView.length) continue;
+      const selected = inView.find(({ id }) => id === activeMapContactId);
+      const contactPoint = selected && selected.source !== "organization"
+        ? selected
+        : inView.find(({ source }) => source !== "organization");
+      const reference = contactPoint || inView[0];
+      const curated = curatedContactCities.get(key);
+      if (curated && bounds.contains([curated.lat, curated.lon]) && map.distance(reference.latLng, [curated.lat, curated.lon]) <= 20000) {
+        labels.push({ ...curated, selected: Boolean(selected), count: inView.length });
+      } else if (contactPoint) {
+        labels.push({ key, name: contactPoint.name, lat: contactPoint.latLng.lat, lon: contactPoint.latLng.lng, kind: "regional", selected: Boolean(selected), count: inView.length });
+      }
+    }
+    return labels.sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, "de"));
+  }
+
+  function updateContactCityLabels(zoom){
+    const accepted = new Set();
+    if (!heatMapActive) {
+      const viewport = map.getSize();
+      const mobileOffset = isMobileLayout() ? 0.25 : 0;
+      const maxLabels = Math.min(32, Math.max(4, Math.floor(viewport.x * viewport.y / 28000)));
+      const curated = contactCityCandidates.filter((city) => zoom >= city.zoom + mobileOffset);
+      const contactPlaces = zoom >= 7.75 + mobileOffset ? visibleContactCityCandidates() : [];
+      const candidates = [
+        ...contactPlaces.filter((city) => city.selected),
+        ...curated.filter((city) => city.kind === "primary"),
+        ...contactPlaces.filter((city) => !city.selected),
+        ...curated.filter((city) => city.kind !== "primary")
+      ];
+      const occupied = [];
+      for (const city of candidates) {
+        if (accepted.size >= maxLabels) break;
+        if (accepted.has(city.key)) continue;
+        const point = map.latLngToContainerPoint([city.lat, city.lon]);
+        const halfWidth = city.name.length * 3.3 + 7;
+        const label = { left: point.x - halfWidth, right: point.x + halfWidth, top: point.y + 5, bottom: point.y + 27 };
+        if (label.left < 8 || label.right > viewport.x - 8 || label.top < 52 || label.bottom > viewport.y - 8) continue;
+        if (occupied.some((box) => label.left < box.right && label.right > box.left && label.top < box.bottom && label.bottom > box.top)) continue;
+        occupied.push(label);
+        accepted.add(city.key);
+        const latLng = [city.lat, city.lon];
+        const html = `<span class="city-label map-city-name map-city-name--${city.kind}">${escapeHtml(city.name)}</span>`;
+        const existing = visibleContactCityLabels.get(city.key);
+        if (existing?.getLatLng().equals(latLng) && existing.options.icon.options.html === html) continue;
+        if (existing) contactCityLabelLayer.removeLayer(existing);
+        const marker = L.marker(latLng, {
+          pane: "contactCityLabels",
+          icon: L.divIcon({
+            className: "map-city-name-anchor",
+            html,
+            iconSize: [0, 0],
+            iconAnchor: [0, 0]
+          }),
+          interactive: false,
+          keyboard: false
+        }).addTo(contactCityLabelLayer);
+        marker.getElement()?.setAttribute("aria-hidden", "true");
+        visibleContactCityLabels.set(city.key, marker);
+      }
+    }
+    for (const [name, marker] of visibleContactCityLabels) {
+      if (accepted.has(name)) continue;
+      contactCityLabelLayer.removeLayer(marker);
+      visibleContactCityLabels.delete(name);
+    }
+  }
+
+  function addLabels(){
+    majorLabelLayer.clearLayers();
+    capitalLabelLayer.clearLayers();
+    stateLabelLayer.clearLayers();
+    extraLabelLayer.clearLayers();
+    moreLabelLayer.clearLayers();
+
+    if (!isInteractiveContactMap()) {
+      [
+        ["major", CITY_LABELS.major, majorLabelLayer],
+        ["capital", CITY_LABELS.capitals, capitalLabelLayer],
+        ["extra", CITY_LABELS.extra, extraLabelLayer],
+        ["more", CITY_LABELS.more, moreLabelLayer]
+      ].forEach(([kind, cities, layer]) => {
+        cities.forEach((city) => {
+          L.marker([city.lat, city.lon], {
+            icon: labelIcon(city.name, kind),
+            interactive: false,
+            keyboard: false
+          }).addTo(layer);
+        });
+      });
+    }
+
+    STATE_LABELS.forEach(s => {
+      L.marker([s.lat, s.lon], {
+        icon: labelIcon(s.name, "state-label"),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: -50
+      }).addTo(stateLabelLayer);
+    });
+
+  }
+
+  function updateLabelVisibility(entries){
+    const z = map.getZoom();
+    const labelLayers = [stateLabelLayer, majorLabelLayer, capitalLabelLayer, extraLabelLayer, moreLabelLayer];
+
+    if (isInteractiveContactMap()) {
+      if (entries) contactCityGroups = groupContactCities(entries);
+      updateContactCityLabels(z);
+    }
+    if (heatMapActive) {
+      labelLayers.forEach((layer) => {
+        if (map.hasLayer(layer)) map.removeLayer(layer);
+      });
+      return;
+    }
+
+    if (!isContactSectorMode() && !isMobileLayout() && z >= 6 && z < 7) {
+      if (!map.hasLayer(stateLabelLayer)) map.addLayer(stateLabelLayer);
+    } else if (map.hasLayer(stateLabelLayer)) {
+      map.removeLayer(stateLabelLayer);
+    }
+    if (isInteractiveContactMap()) return;
+
+    if (z >= 7) {
+      if (!map.hasLayer(majorLabelLayer)) map.addLayer(majorLabelLayer);
+    } else {
+      if (map.hasLayer(majorLabelLayer)) map.removeLayer(majorLabelLayer);
+    }
+
+    if (z >= 8) {
+      if (!map.hasLayer(capitalLabelLayer)) map.addLayer(capitalLabelLayer);
+    } else {
+      if (map.hasLayer(capitalLabelLayer)) map.removeLayer(capitalLabelLayer);
+    }
+
+    if (z >= 9) {
+      if (!map.hasLayer(extraLabelLayer)) map.addLayer(extraLabelLayer);
+    } else {
+      if (map.hasLayer(extraLabelLayer)) map.removeLayer(extraLabelLayer);
+    }
+
+    if (z >= 10) {
+      if (!map.hasLayer(moreLabelLayer)) map.addLayer(moreLabelLayer);
+    } else {
+      if (map.hasLayer(moreLabelLayer)) map.removeLayer(moreLabelLayer);
+    }
+  }
+
+  addLabels();
+  updateLabelVisibility();
+  map.on(isInteractiveContactMap() ? 'moveend' : 'zoomend', () => updateLabelVisibility());
+  buildStateHeatLayer();
+
+
+
+  // ---- Markers ----
+  const markerLayer = L.layerGroup().addTo(map);
+  const stateOverviewPinLayer = L.layerGroup().addTo(map);
+
+  function resizeStateOverviewPins(){
+    const markers = stateOverviewPinLayer.getLayers();
+    if (!markers.length) return;
+    const mobile = isMobileLayout();
+    const largest = mobile ? 15 : 17;
+    const smallest = mobile ? 7 : 8;
+    const viewport = map.getSize();
+    const visible = markers.map(marker => ({
+      marker,
+      point: map.latLngToContainerPoint(marker.getLatLng())
+    })).filter(({ point }) => point.x >= -largest / 2
+      && point.x <= viewport.x + largest / 2
+      && point.y >= 0
+      && point.y <= viewport.y + largest);
+
+    const extraPins = Math.max(0, visible.length - 29);
+    const preferred = Math.max(smallest, largest - Math.ceil(extraPins / 28));
+    const grid = new Map();
+    const cells = visible.map(pin => {
+      const column = Math.floor(pin.point.x / preferred);
+      const row = Math.floor(pin.point.y / preferred);
+      const key = `${column}:${row}`;
+      if (!grid.has(key)) grid.set(key, []);
+      grid.get(key).push(pin);
+      return { ...pin, column, row };
+    });
+
+    for (const { marker, point, column, row } of cells) {
+      let size = preferred;
+      for (let y = row - 1; y <= row + 1 && size > smallest; y += 1) {
+        for (let x = column - 1; x <= column + 1 && size > smallest; x += 1) {
+          for (const neighbor of grid.get(`${x}:${y}`) || []) {
+            if (neighbor.marker === marker) continue;
+            // The drawn silhouette uses roughly three quarters of the SVG's width.
+            const horizontal = Math.abs(point.x - neighbor.point.x) / 0.75;
+            const vertical = Math.abs(point.y - neighbor.point.y);
+            const clearance = Math.floor(Math.max(horizontal, vertical) - 1);
+            size = Math.max(smallest, Math.min(size, clearance));
+            if (size === smallest) break;
+          }
+        }
+      }
+      const element = marker.getElement();
+      if (element && element.style.getPropertyValue("--state-overview-pin-size") !== `${size}px`) {
+        element.style.setProperty("--state-overview-pin-size", `${size}px`);
+      }
+    }
+  }
+
+  function renderStateOverviewPins(entries){
+    stateOverviewPinLayer.clearLayers();
+    if (!entries.length) return;
+    const size = isMobileLayout() ? 8 : 9;
+    const icon = L.divIcon({
+      className: "map-state-overview-pin",
+      html: gematikMarkerMarkup(false, "gematik-marker gematik-marker--micro"),
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size]
+    });
+    entries.forEach(({ lat, lon }) => {
+      L.marker([lat, lon], {
+        icon,
+        opacity: 0.88,
+        // The state polygon remains the click target in the overview.
+        interactive: false,
+        keyboard: false
+      }).addTo(stateOverviewPinLayer);
+    });
+    resizeStateOverviewPins();
+  }
+
+  map.on("moveend resize", resizeStateOverviewPins);
+
+  const states = STATE_LABELS.map((state) => state.name);
+  const STATE_FLAG_ASSET_URLS = {
+    Berlin: "./state-flags/berlin.svg",
+    Brandenburg: "./state-flags/brandenburg.svg",
+    Bremen: "./state-flags/bremen.svg",
+    Niedersachsen: "./state-flags/niedersachsen.svg",
+    "Rheinland-Pfalz": "./state-flags/rheinland-pfalz.svg",
+    Saarland: "./state-flags/saarland.svg",
+    "Sachsen-Anhalt": "./state-flags/sachsen-anhalt.svg"
+  };
+  const STATE_FLAG_MARKUP = {
+    Deutschland: '<rect width="18" height="4" fill="#1f2937"/><rect y="4" width="18" height="4" fill="#c8102e"/><rect y="8" width="18" height="4" fill="#f5c400"/>',
+    "Baden-Württemberg": '<rect width="18" height="6" fill="#111827"/><rect y="6" width="18" height="6" fill="#f5cf27"/>',
+    Bayern: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#1f65ad"/>',
+    Hamburg: '<rect width="18" height="12" fill="#d71920"/><path d="M5 9V5h2V3h1v2h2V3h1v2h2v4z" fill="#fff"/>',
+    Hessen: '<rect width="18" height="6" fill="#d71920"/><rect y="6" width="18" height="6" fill="#ffffff"/>',
+    "Mecklenburg-Vorpommern": '<rect width="18" height="3.2" fill="#1f65ad"/><rect y="3.2" width="18" height="2.4" fill="#ffffff"/><rect y="5.6" width="18" height=".8" fill="#f5c400"/><rect y="6.4" width="18" height="2.4" fill="#ffffff"/><rect y="8.8" width="18" height="3.2" fill="#d71920"/>',
+    "Nordrhein-Westfalen": '<rect width="18" height="4" fill="#159447"/><rect y="4" width="18" height="4" fill="#ffffff"/><rect y="8" width="18" height="4" fill="#d71920"/>',
+    Sachsen: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#159447"/>',
+    "Schleswig-Holstein": '<rect width="18" height="4" fill="#1f65ad"/><rect y="4" width="18" height="4" fill="#ffffff"/><rect y="8" width="18" height="4" fill="#d71920"/>',
+    Thüringen: '<rect width="18" height="6" fill="#ffffff"/><rect y="6" width="18" height="6" fill="#d71920"/>'
+  };
+  const priorityOrder = { Hoch: 0, Mittel: 1, Niedrig: 2, High: 0, Medium: 1, Low: 2 };
+
+  function mapSourceEntries(){
+    return EMBED_MODE ? currentEntries : BASE_DATA;
+  }
+
+  function uniqueSorted(values){
+    return Array.from(new Set(values.filter(Boolean))).sort((a, b) => a.localeCompare(b, "de"));
+  }
+
+  function availableCategories(){
+    const present = new Set(mapSourceEntries().map((entry) => entry.category).filter(Boolean));
+    if (MAP_MESSAGE_CHANNEL !== "contacts") return uniqueSorted([...present]);
+    const canonical = sectorRegistry.labels();
+    const extras = uniqueSorted([...present]
+      .map((label) => sectorRegistry.normalizeSector(label, ""))
+      .filter((label) => label && !canonical.includes(label) && !sectorRegistry.isExcludedSector(label)));
+    return [...canonical, ...extras];
+  }
+
+  function availableOwners(){
+    return uniqueSorted(mapSourceEntries().flatMap((entry) => ownerValuesForEntry(entry).filter((value) => !/^[0-9a-f-]{36}$/i.test(value))));
+  }
+
+  function initialsFromLabel(value) {
+    const parts = String(value || "").replace(/\([^)]*\)/g, "").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "OW";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+
+  function ownerEntryForValue(value) {
+    const owner = String(value || "").trim();
+    if (!owner) return null;
+    return mapSourceEntries().find((entry) => ownerValuesForEntry(entry).includes(owner)) || null;
+  }
+
+  function ownerValuesForEntry(entry) {
+    return [
+      ...(Array.isArray(entry?.ownerLabels) ? entry.ownerLabels : []),
+      ...(Array.isArray(entry?.ownerIds) ? entry.ownerIds : []),
+      ...splitOwnerTokens(entry?.owner),
+      entry?.ownerId
+    ].map((value) => String(value || "").trim()).filter(Boolean);
+  }
+
+  function ownerAvatarContent(owner) {
+    const entry = ownerEntryForValue(owner);
+    const ownerObject = Array.isArray(entry?.owners)
+      ? entry.owners.find((item) => [item.id, item.displayName, item.label, item.name].map((value) => String(value || "").trim()).includes(owner))
+      : null;
+    const label = ownerObject?.displayName || ownerObject?.label || ownerObject?.name || owner;
+    const avatarUrl = safeImageUrl(ownerObject?.avatarUrl || ownerObject?.avatar_url || entry?.ownerAvatar);
+    if (avatarUrl) {
+      return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+    }
+    return escapeHtml(initialsFromLabel(label));
+  }
+
+  function mapFilterValueMarkup(label, iconMarkup = "") {
+    return `<span class="map-filter-value">${iconMarkup}<span class="map-filter-value__label">${escapeHtml(label)}</span></span>`;
+  }
+
+  function sectorFilterIcon(value) {
+    const sector = String(value || "").trim();
+    if (!sector) return '<span class="map-filter-sector-dot is-all" aria-hidden="true"></span>';
+    return `<span class="map-filter-sector-dot" style="--filter-sector-color:${escapeHtml(mapCategoryColor(sector))}" aria-hidden="true"></span>`;
+  }
+
+  function stateFlagIcon(value) {
+    const state = String(value || "").trim();
+    const resolvedState = (STATE_FLAG_ASSET_URLS[state] || STATE_FLAG_MARKUP[state]) ? state : "Deutschland";
+    const flagAssetUrl = STATE_FLAG_ASSET_URLS[resolvedState];
+    const flagMarkup = flagAssetUrl
+      ? `<img src="${escapeHtml(flagAssetUrl)}" alt="" referrerpolicy="no-referrer">`
+      : `<svg viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" focusable="false">${STATE_FLAG_MARKUP[resolvedState]}</svg>`;
+    return `<span class="map-filter-state-flag" data-state-flag="${escapeHtml(resolvedState)}" aria-hidden="true">${flagMarkup}</span>`;
+  }
+
+  function ownerFilterAvatarIcon(value) {
+    const owner = String(value || "").trim();
+    if (owner) {
+      return `<span class="map-filter-owner-avatar" aria-hidden="true">${ownerFilterAvatarContent(owner)}</span>`;
+    }
+    const owners = orderedOwnerFilterValues(availableOwners());
+    const visibleOwners = owners.slice(0, 3);
+    const remaining = Math.max(0, owners.length - visibleOwners.length);
+    return `<span class="map-filter-owner-stack" aria-hidden="true">
+      ${visibleOwners.map((label) => `<span class="map-filter-owner-avatar">${ownerFilterAvatarContent(label)}</span>`).join("")}
+      ${remaining ? `<span class="map-filter-owner-avatar is-more">+${remaining}</span>` : ""}
+    </span>`;
+  }
+
+  function normalizedOwnerValue(value) {
+    return String(value || "").trim().toLocaleLowerCase("de");
+  }
+
+  function isCurrentOwnerValue(value) {
+    const needle = normalizedOwnerValue(value);
+    if (!needle || !activeCurrentOwner) return false;
+    return [activeCurrentOwner.id, activeCurrentOwner.displayName, activeCurrentOwner.label, activeCurrentOwner.name, activeCurrentOwner.email]
+      .some((candidate) => normalizedOwnerValue(candidate) === needle);
+  }
+
+  function orderedOwnerFilterValues(values) {
+    return [...values].sort((left, right) => {
+      const currentOwnerOrder = Number(isCurrentOwnerValue(right)) - Number(isCurrentOwnerValue(left));
+      return currentOwnerOrder || left.localeCompare(right, "de");
+    });
+  }
+
+  function ownerFilterAvatarContent(owner) {
+    if (isCurrentOwnerValue(owner)) {
+      const avatarUrl = safeImageUrl(activeCurrentOwner?.avatarUrl || activeCurrentOwner?.avatar_url);
+      if (avatarUrl) return `<img src="${escapeHtml(avatarUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`;
+      return escapeHtml(initialsFromLabel(activeCurrentOwner?.displayName || activeCurrentOwner?.label || owner));
+    }
+    return ownerAvatarContent(owner);
+  }
+
+  function buildFilterListSeparator(categories) {
+    const separator = document.createElement("div");
+    separator.className = "filter-list-separator";
+    separator.setAttribute("aria-hidden", "true");
+    const dots = categories.slice(0, 5).map((category) => (
+      `<span class="filter-list-separator__dot" style="--filter-sector-color:${escapeHtml(mapCategoryColor(category))}"></span>`
+    )).join("");
+    separator.innerHTML = `<span class="filter-list-separator__dots">${dots}</span>`;
+    return separator;
+  }
+
+  function ownerPillHtml(entry) {
+    const labels = (Array.isArray(entry?.ownerLabels) && entry.ownerLabels.length ? entry.ownerLabels : splitOwnerTokens(entry?.owner)).filter(Boolean);
+    if (!labels.length) return "";
+    const visible = labels.slice(0, 2);
+    const remaining = Math.max(0, labels.length - visible.length);
+    return `
+      ${visible.map((label) => `
+        <span class="owner-pill">
+          <span class="owner-pill-avatar" aria-hidden="true">${ownerAvatarContent(label)}</span>
+          <span class="owner-pill-label">${escapeHtml(label)}</span>
+        </span>
+      `).join("")}
+      ${remaining ? `<span class="owner-pill"><span class="owner-pill-label">+${remaining}</span></span>` : ""}
+    `;
+  }
+
+  function sectorIconSvg(category) {
+    const key = String(category || "").toLowerCase();
+    if (key.includes("labor")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"></path><path d="M10 3v5l-4 8a3 3 0 0 0 2.7 4.3h6.6A3 3 0 0 0 18 16l-4-8V3"></path><path d="M8 15h8"></path></svg>`;
+    }
+    if (key.includes("therapie")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"></path><path d="M8 8v8"></path><path d="M16 8v8"></path><path d="M6 17c2 2 10 2 12 0"></path></svg>`;
+    }
+    if (key.includes("hebamme")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10c0-2.8 2.2-5 5-5s5 2.2 5 5c0 4-5 8-5 8s-5-4-5-8Z"></path><circle cx="12" cy="10" r="2"></circle></svg>`;
+    }
+    if (key.includes("rettung") || key.includes("notfall")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 17V8h10l3 4h3v5"></path><path d="M8 17a2 2 0 1 0 0 .1"></path><path d="M17 17a2 2 0 1 0 0 .1"></path><path d="M8 11h4"></path><path d="M10 9v4"></path></svg>`;
+    }
+    if (key.includes("reha")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 19c4-8 8-12 12-14"></path><path d="M8 12h8"></path><path d="M12 8v8"></path></svg>`;
+    }
+    if (key.includes("krankenkasse")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.5 3 7.6 7 10 4-2.4 7-5.5 7-10V6z"></path><path d="M9 12h6"></path><path d="M12 9v6"></path></svg>`;
+    }
+    if (key.includes("krankenhaus")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"></path><path d="M6 20V6a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v14"></path><path d="M9 10h6"></path><path d="M12 7v6"></path><path d="M9 20v-4h6v4"></path></svg>`;
+    }
+    if (key.includes("apotheke")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21h10"></path><path d="M8 21V8h8v13"></path><path d="M10 4h4v4h-4z"></path><path d="M10 14h4"></path><path d="M12 12v4"></path></svg>`;
+    }
+    if (key.includes("pflege")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 11c0-2 1.5-3.5 3.5-3.5 1.1 0 2.1.5 2.8 1.3.7-.8 1.7-1.3 2.8-1.3 2 0 3.5 1.5 3.5 3.5 0 4-6.3 7.5-6.3 7.5S7 15 7 11Z"></path><path d="M4 13h3"></path><path d="M17 13h3"></path></svg>`;
+    }
+    if (key.includes("praxis")) {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"></circle><path d="M4 20c0-3 2.2-5 5-5"></path><path d="M16 11v6"></path><path d="M13 14h6"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7"></circle><path d="M12 8v8"></path><path d="M8 12h8"></path></svg>`;
+  }
+
+  function sectorFilterContent(label) {
+    return `<span class="category-chip-icon" aria-hidden="true">${sectorIconSvg(label)}</span><span class="category-chip-label">${escapeHtml(label)}</span>`;
+  }
+
+  function availablePriorities(){
+    return uniqueSorted(mapSourceEntries().map((entry) => entry.priority)).sort((a, b) => {
+      return (priorityOrder[a] ?? 10) - (priorityOrder[b] ?? 10) || a.localeCompare(b, "de");
+    });
+  }
+
+  let activeCategoryFilter = "";
+  let activeOwnerFilter = "";
+  let activePriorityFilter = "";
+  let query = "";
+  let activeMapContactId = "";
+  let mapMovedForActiveContact = false;
+  let currentListPage = 1;
+  const mobileListPageSize = 5;
+  let lastMobileLayout = window.matchMedia('(max-width: 760px)').matches;
+  let resizeMapFrame = 0;
+
+  function mapLabel(key, fallback) {
+    return activeMapLabels?.[key] || fallback;
+  }
+
+  const elFilters = document.getElementById('filters');
+  const elMobileMapFilters = document.getElementById('mobile-map-filter-group');
+  const elSearch = document.getElementById('search');
+  const elSearchClear = document.getElementById('map-search-clear');
+  const elList = document.getElementById('list');
+  const elMapPagination = document.getElementById('map-pagination');
+  const elCount = document.getElementById('count');
+  const elPanelTitle = document.querySelector('.panel-title');
+  if (isInteractiveContactMap()) document.getElementById('marker-toggle')?.remove();
+  const elMarkerToggle = document.getElementById('marker-toggle');
+  const elHeatMapToggle = document.getElementById('heatmap-toggle');
+  const elPointsToggle = document.getElementById('points-toggle');
+  const elClusterToggle = document.getElementById('cluster-toggle');
+  const elMapResetToggle = document.getElementById('map-reset-toggle');
+  const elMapResetLabel = document.getElementById('map-reset-label');
+  const elStateFilterToggle = document.getElementById('state-filter-toggle');
+  const elStateFilterLabel = document.getElementById('state-filter-label');
+  const elStateFilterMenu = document.getElementById('state-filter-menu');
+  const elStateView = document.getElementById('state-view');
+  const elStateViewTitle = document.getElementById('state-view-title');
+  const elStateViewMeta = document.getElementById('state-view-meta');
+  const elStateViewClose = document.getElementById('state-view-close');
+  const elStateViewFilterToggle = document.getElementById('state-view-filter-toggle');
+  const elStateViewFilterLabel = document.getElementById('state-view-filter-label');
+  const elStateFilterDropdown = document.querySelector('.map-dropdown');
+  const elStateViewFilter = document.querySelector('.state-view-filter');
+  const elSidebar = document.querySelector('.sidebar');
+  const elMobileSheetToggle = document.getElementById('mobile-sheet-toggle');
+  const elMobileSheetCount = document.getElementById('mobile-sheet-count');
+  const elMobileSheetMeta = document.getElementById('mobile-sheet-meta');
+  const elMobileMapPreview = document.getElementById('mobile-map-preview');
+  const elMapContactPreview = document.getElementById('map-contact-preview');
+  const elMapContactPreviewHome = elMapContactPreview?.parentElement;
+  const elMapStateSelection = document.getElementById('map-state-selection');
+  const elMapStateSelectionLabel = document.getElementById('map-state-selection-label');
+  const elMapStateSelectionReset = document.getElementById('map-state-selection-reset');
+  const elMapActiveFilters = document.getElementById('map-active-filters');
+  const elMapLegendList = document.getElementById('map-legend-list');
+  const elWorkspace = document.querySelector('.workspace');
+  const elMapDetailPanel = document.getElementById('map-detail-panel');
+  const elMapListToggle = document.getElementById('map-list-toggle');
+  const elMobileQuickFilters = document.getElementById('mobile-map-quick-filters');
+
+  let mobileSheetState = 'collapsed';
+  let mobilePreviewContactId = "";
+  let mapContactPreviewFromMarker = false;
+  let mapContactPreviewContent = "";
+  let mapContactPreviewPositionFrame = 0;
+  let mapContactPreviewZooming = false;
+  let receivedMapData = false;
+  let mapDetailActiveTab = "overview";
+  let mapListCollapsed = false;
+
+  function normalize(s){ return (s || "").toString().toLowerCase(); }
+  function escapeHtml(value){
+    return String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+  function safeImageUrl(value){
+    const candidate = String(value || "").trim();
+    if (!candidate || /[\u0000-\u001f\u007f]/.test(candidate)) return "";
+    if (/^data:image\/(?:png|jpeg|webp);base64,[a-z0-9+/]+={0,2}$/i.test(candidate) && candidate.length <= 3_000_000) {
+      return candidate;
+    }
+    try {
+      const parsed = new URL(candidate, window.location.href);
+      const localHttp = parsed.protocol === "http:" && parsed.origin === window.location.origin;
+      if ((parsed.protocol !== "https:" && !localHttp) || parsed.username || parsed.password) return "";
+      return parsed.href;
+    } catch (_error) {
+      return "";
+    }
+  }
+  function safeNavigationUrl(value){
+    const candidate = String(value || "").trim();
+    if (!candidate || /[\u0000-\u001f\u007f]/.test(candidate)) return "";
+    if (/^(?:mailto|tel):/i.test(candidate)) return candidate;
+    try {
+      const parsed = new URL(candidate, window.location.href);
+      const localHttp = parsed.protocol === "http:" && parsed.origin === window.location.origin;
+      if ((parsed.protocol !== "https:" && !localHttp) || parsed.username || parsed.password) return "";
+      return parsed.href;
+    } catch (_error) {
+      return "";
+    }
+  }
+  function boundedMapText(value, maximum = 500){
+    return String(value ?? "").replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g, "").slice(0, maximum);
+  }
+  function isPlainRecord(value){
+    if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+    const prototype = Object.getPrototypeOf(value);
+    return prototype === Object.prototype || prototype === null;
+  }
+  function sanitizeOwnerSummary(value){
+    if (!isPlainRecord(value)) return null;
+    return {
+      id: boundedMapText(value.id, 160),
+      displayName: boundedMapText(value.displayName || value.display_name, 240),
+      label: boundedMapText(value.label, 240),
+      name: boundedMapText(value.name, 240),
+      email: boundedMapText(value.email, 320),
+      avatarUrl: safeImageUrl(value.avatarUrl || value.avatar_url)
+    };
+  }
+  function sanitizeMapContact(value){
+    if (!isPlainRecord(value)) return null;
+    const id = boundedMapText(value.id, 160).trim();
+    const latitude = Number.parseFloat(value.lat ?? value.latitude ?? "");
+    const longitude = Number.parseFloat(value.lon ?? value.longitude ?? "");
+    if (!id || !Number.isFinite(latitude) || latitude < -90 || latitude > 90 || !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
+      return null;
+    }
+    const text = (key, maximum = 500) => boundedMapText(value[key], maximum);
+    const ownerIds = Array.isArray(value.ownerIds) ? value.ownerIds.slice(0, 20).map((item) => boundedMapText(item, 160)).filter(Boolean) : [];
+    const owners = Array.isArray(value.owners) ? value.owners.slice(0, 20).map(sanitizeOwnerSummary).filter(Boolean) : [];
+    const themes = Array.isArray(value.themes) ? value.themes.slice(0, 50).map((item) => boundedMapText(item, 160)).filter(Boolean) : [];
+    const sources = Array.isArray(value.sources)
+      ? value.sources.slice(0, 20).map((item) => boundedMapText(item, 2_000)).filter(Boolean)
+      : boundedMapText(value.sources, 4_000);
+    const contactChannelAccess = normalizeContactChannelAccess(value.contactChannelAccess);
+    const channelsRestricted = contactChannelAccess === "restricted";
+    return {
+      id,
+      name: text("name", 300),
+      honorificTitle: text("honorificTitle", 120),
+      specialty: text("specialty", 240),
+      contactRole: text("contactRole", 240),
+      category: text("category", 120),
+      organization: text("organization", 300),
+      topic: text("topic", 1_000),
+      priority: text("priority", 80),
+      email: channelsRestricted ? "" : text("email", 320),
+      phone: channelsRestricted ? "" : text("phone", 120),
+      contactChannelAccess,
+      linkedin: safeNavigationUrl(value.linkedin),
+      location: text("location", 300),
+      city: text("city", 160),
+      state: text("state", 120),
+      street: text("street", 240),
+      postalCode: text("postalCode", 40),
+      url: safeNavigationUrl(value.url),
+      description: text("description", 2_000),
+      lat: latitude,
+      lon: longitude,
+      mapPositionSource: text("mapPositionSource", 80),
+      note: text("note", 4_000),
+      nextStep: text("nextStep", 2_000),
+      image: safeImageUrl(value.image),
+      owner: text("owner", 500),
+      ownerId: text("ownerId", 160),
+      ownerIds,
+      owners,
+      ownerAvatar: safeImageUrl(value.ownerAvatar),
+      themes,
+      sources
+    };
+  }
+  function isTrustedMapParentMessage(event){
+    if (!EMBED_MODE || window.parent === window || event.source !== window.parent || event.origin !== window.location.origin) return false;
+    if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return false;
+    const data = event.data;
+    if (!isPlainRecord(data) || data.version !== MAP_MESSAGE_VERSION || data.channel !== MAP_MESSAGE_CHANNEL) return false;
+    return true;
+  }
+
+  function sanitizeMapDataMessage(event){
+    if (!isTrustedMapParentMessage(event) || event.data.type !== "versorgungs-kompass-map-data") return null;
+    const data = event.data;
+    const expectedContext = MAP_MESSAGE_CHANNEL;
+    if ((data.context || "contacts") !== expectedContext || !Array.isArray(data.contacts) || data.contacts.length > 5_000) return null;
+    const allowedLabelKeys = new Set(["itemSingular", "itemPlural", "listTitle", "searchPlaceholder", "categoryLabel", "categoryAllLabel", "openDetailLabel", "previewKicker", "emptyTitle", "descriptionFallback"]);
+    const labels = {};
+    if (isPlainRecord(data.labels)) {
+      Object.entries(data.labels).forEach(([key, value]) => {
+        if (allowedLabelKeys.has(key)) labels[key] = boundedMapText(value, 240);
+      });
+    }
+    const currentOwner = isPlainRecord(data.currentOwner) ? sanitizeOwnerSummary(data.currentOwner) : null;
+    return {
+      context: expectedContext,
+      labels,
+      currentOwner,
+      showOwnerFilter: data.showOwnerFilter !== false,
+      contacts: data.contacts.map(sanitizeMapContact).filter(Boolean)
+    };
+  }
+  let parentMapReadyNotified = false;
+  function notifyParentMapReady(){
+    if (!EMBED_MODE || !window.parent || window.parent === window) return;
+    if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return;
+    if (parentMapReadyNotified) return;
+    parentMapReadyNotified = true;
+    window.parent.postMessage({
+      type: "versorgungs-kompass-map-ready",
+      version: MAP_MESSAGE_VERSION,
+      channel: MAP_MESSAGE_CHANNEL,
+      context: activeMapContext
+    }, window.location.origin);
+  }
+  document.addEventListener("error", (event) => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+    const parent = image.parentElement;
+    const fallback = boundedMapText(image.dataset.imageFallback, 12);
+    image.remove();
+    if (parent && fallback) parent.textContent = fallback;
+  }, true);
+  function hasValue(value){ return String(value || "").trim().length > 0; }
+  function initials(value){
+    const parts = String(value || "VK").trim().split(/\s+/).filter(Boolean);
+    if (!parts.length) return "VK";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  }
+  function isMobileLayout(){ return window.matchMedia('(max-width: 760px)').matches; }
+
+  function setMapListCollapsed(collapsed){
+    mapListCollapsed = Boolean(collapsed) && !isMobileLayout();
+    elWorkspace?.classList.toggle('map-list-collapsed', mapListCollapsed);
+    elMapListToggle?.setAttribute('aria-expanded', mapListCollapsed ? 'false' : 'true');
+    elMapListToggle?.setAttribute('aria-label', mapListCollapsed ? 'Kontaktliste ausklappen' : 'Kontaktliste einklappen');
+    window.setTimeout(() => map.invalidateSize(), 160);
+  }
+
+  function toggleMapList(){
+    setMapListCollapsed(!mapListCollapsed);
+  }
+
+  function resetListPage(){
+    currentListPage = 1;
+  }
+
+  function syncSearchClearButton(){
+    if (!elSearchClear) return;
+    elSearchClear.hidden = !String(elSearch?.value || "").trim();
+  }
+
+  function resetMapFilters(){
+    activeMapContactId = "";
+    mobilePreviewContactId = "";
+    activeCategoryFilter = "";
+    activeOwnerFilter = "";
+    activePriorityFilter = "";
+    query = "";
+    if (elSearch) elSearch.value = "";
+    syncSearchClearButton();
+    if (selectedState) {
+      setSelectedState("");
+    } else {
+      renderFilters();
+      renderStateFilterMenu();
+      render();
+    }
+  }
+
+  function setMobileSheetState(nextState = 'collapsed'){
+    mobileSheetState = nextState;
+    if (!elSidebar) return;
+    elSidebar.dataset.sheetState = isMobileLayout() ? 'full' : 'desktop';
+    if (elMobileSheetToggle && isMobileLayout()) {
+      elMobileSheetToggle.setAttribute('aria-label', 'Kontaktliste');
+    }
+    if (elMobileSheetMeta && isMobileLayout()) {
+      elMobileSheetMeta.textContent = selectedState ? `${selectedState}${activeCategoryFilter ? ` • ${activeCategoryFilter}` : ''}` : 'Deutschlandweite Ansicht';
+    }
+    syncMobileMapGestures();
+  }
+
+  function cycleMobileSheetState(){
+    if (!isMobileLayout()) return;
+    document.querySelector('.sidebar')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }
+
+  function syncMobileMapGestures(){
+    if (!map) return;
+    if (OVERVIEW_PREVIEW_MODE) {
+      map.dragging.disable();
+      map.scrollWheelZoom.disable();
+      map.touchZoom.disable();
+      map.doubleClickZoom.disable();
+      map.boxZoom.disable();
+      map.keyboard.disable();
+      return;
+    }
+    map.dragging.enable();
+    map.touchZoom.enable();
+    map.doubleClickZoom.enable();
+    if (isMobileLayout() || isInteractiveContactMap()) map.scrollWheelZoom.disable();
+    else map.scrollWheelZoom.enable();
+  }
+
+  function fitMapToGermany(){
+    const bounds = L.geoJSON(DE_GEOJSON).getBounds();
+    map.setMinZoom(currentMapMinZoom());
+    map.fitBounds(bounds.pad(germanyFitPaddingRatio()), germanyFitOptions());
+  }
+
+  function passes(d){
+    const q = normalize(query).trim();
+    if (activeCategoryFilter && d.category !== activeCategoryFilter) return false;
+    if (selectedState && d.state !== selectedState) return false;
+    if (activeOwnerFilter && !ownerValuesForEntry(d).includes(activeOwnerFilter)) return false;
+    if (!q) return true;
+    const hay = [
+      d.name,
+      d.organization,
+      d.city,
+      d.state,
+      d.category,
+      d.person_title,
+      ...ownerValuesForEntry(d),
+      d.description
+    ].map(normalize).join(" ");
+    return hay.includes(q);
+  }
+
+  function filteredEntries(){
+    return mapSourceEntries().filter(passes);
+  }
+
+  function matchesQuery(entry){
+    const q = normalize(query).trim();
+    if (!q) return true;
+    const hay = normalize(entry.name) + " " + normalize(entry.city) + " " + normalize(entry.category) + " " + normalize(entry.description) + " " + ownerValuesForEntry(entry).map(normalize).join(" ");
+    return hay.includes(q);
+  }
+
+  function stateEntries(name){
+    return mapSourceEntries().filter((entry) => {
+      if (entry.state !== name) return false;
+      if (activeCategoryFilter && entry.category !== activeCategoryFilter) return false;
+      if (activeOwnerFilter && !ownerValuesForEntry(entry).includes(activeOwnerFilter)) return false;
+      return matchesQuery(entry);
+    });
+  }
+
+  function allStateEntriesCount(){
+    return mapSourceEntries().filter((entry) => (
+      (!activeCategoryFilter || entry.category === activeCategoryFilter) &&
+      (!activeOwnerFilter || ownerValuesForEntry(entry).includes(activeOwnerFilter)) &&
+      matchesQuery(entry)
+    )).length;
+  }
+
+  function renderMapActiveFilters(){
+    if (!elMapActiveFilters) return;
+    const chips = [];
+    if (selectedState) chips.push({ key: 'state', label: selectedState });
+    if (activeCategoryFilter) chips.push({ key: 'category', label: `Sektor: ${activeCategoryFilter}` });
+    if (activeOwnerFilter) chips.push({ key: 'owner', label: `Owner: ${activeOwnerFilter}` });
+    if (query.trim()) chips.push({ key: 'query', label: `Suche: ${query.trim()}` });
+
+    if (!chips.length) {
+      elMapActiveFilters.innerHTML = "";
+      elMapActiveFilters.hidden = true;
+      return;
+    }
+
+    elMapActiveFilters.hidden = false;
+    elMapActiveFilters.innerHTML = chips
+      .map(
+        (chip) => `
+          <span class="map-active-filter-chip" data-filter-chip="${escapeHtml(chip.key)}">
+            <span>${escapeHtml(chip.label)}</span>
+            <button type="button" data-filter-remove="${escapeHtml(chip.key)}" aria-label="${escapeHtml(chip.label)} entfernen">&times;</button>
+          </span>
+        `
+      )
+      .join("");
+
+    Array.from(elMapActiveFilters.querySelectorAll('[data-filter-remove]')).forEach((button) => {
+      button.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const key = button.dataset.filterRemove;
+        if (key === 'state') {
+          setSelectedState("");
+          fitMapToGermany();
+        } else if (key === 'category') {
+          activeCategoryFilter = "";
+          renderFilters();
+          render();
+        } else if (key === 'owner') {
+          activeOwnerFilter = "";
+          renderFilters();
+          render();
+        } else if (key === 'query') {
+          query = "";
+          elSearch.value = "";
+          syncSearchClearButton();
+          render();
+        }
+      });
+    });
+  }
+
+  function previewMetaBadges(entry){
+    const badges = [];
+    if (entry.category) badges.push(`<span class="mobile-map-preview-badge">${escapeHtml(entry.category)}</span>`);
+    if (entry.priority) badges.push(`<span class="mobile-map-preview-badge">${escapeHtml(entry.priority)}</span>`);
+    return badges.join("");
+  }
+
+  function mapTooltipDetailIcon(kind) {
+    if (kind === "organization") {
+      return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21h16"></path><path d="M6 21V4h9v17"></path><path d="M15 9h3v12"></path><path d="M9 8h3M9 12h3M9 16h3"></path></svg>`;
+    }
+    return `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"></path><circle cx="12" cy="10" r="2.5"></circle></svg>`;
+  }
+
+  function mapTooltipDetailHtml(kind, value) {
+    if (!hasValue(value)) return "";
+    return `
+      <div class="map-point-tooltip__detail map-point-tooltip__detail--${kind}">
+        <span class="map-point-tooltip__detail-icon" aria-hidden="true">${mapTooltipDetailIcon(kind)}</span>
+        <span class="map-point-tooltip__detail-text">${escapeHtml(value)}</span>
+      </div>
+    `;
+  }
+
+  function mapTooltipSectorBadge(entry) {
+    const sectorColor = mapCategoryColor(entry.category || "");
+    return entry.category
+      ? `<span class="map-point-tooltip__sector" style="--sector-color:${escapeHtml(sectorColor)};--sector-bg:${escapeHtml(sectorTint(sectorColor))}"><span class="map-point-tooltip__sector-icon" aria-hidden="true">${sectorIconSvg(entry.category)}</span><span>${escapeHtml(entry.category)}</span></span>`
+      : "";
+  }
+
+  function mapTooltipHtml(entry) {
+    const imageUrl = safeImageUrl(entry.image);
+    const avatarFallback = escapeHtml(initials(entry.name));
+    const avatar = imageUrl
+      ? `<span class="map-point-tooltip__avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${avatarFallback}"></span>`
+      : `<span class="map-point-tooltip__avatar">${avatarFallback}</span>`;
+    if (isInteractiveContactMap()) {
+      return `
+        <div class="map-point-tooltip__content map-point-tooltip__content--contact-name">
+          <div class="map-point-tooltip__header">
+            ${avatar}
+            <strong class="map-point-tooltip__name">${escapeHtml(entry.name)}</strong>
+          </div>
+        </div>
+      `;
+    }
+    const locationLine = entryListLocation(entry);
+    const organizationLine = entry.organization || mapLabel("descriptionFallback", "Kontakt");
+    return `
+      <div class="map-point-tooltip__content">
+        <div class="map-point-tooltip__header">
+          ${avatar}
+          <div class="map-point-tooltip__identity">
+            <div class="map-point-tooltip__name">${escapeHtml(entry.name)}</div>
+            <div class="map-point-tooltip__badges">${mapTooltipSectorBadge(entry)}</div>
+          </div>
+        </div>
+        <div class="map-point-tooltip__details">
+          ${mapTooltipDetailHtml("organization", organizationLine)}
+          ${mapTooltipDetailHtml("location", locationLine || entry.state || "Ort nicht dokumentiert")}
+        </div>
+      </div>
+    `;
+  }
+
+  function bindMapPointTooltip(marker, entry) {
+    if (isMobileLayout()) return marker;
+    marker.bindTooltip(mapTooltipHtml(entry), {
+      className: "map-point-tooltip",
+      direction: "auto",
+      offset: [0, -10],
+      opacity: 1,
+      sticky: true
+    });
+    marker.on("tooltipopen", () => {
+      if (mapContactPreviewFromMarker && activeMapContactId === entry.id && !elMapContactPreview?.hidden) {
+        marker.closeTooltip();
+      }
+    });
+    marker.on('mouseover', () => highlightContactState(entry.state, true));
+    marker.on('mouseout', () => highlightContactState(entry.state, false));
+    return marker;
+  }
+
+  function openEntryDetail(entry){
+    if (!entry) return;
+    if (EMBED_MODE && window.parent && window.parent !== window) {
+      if (!ALLOWED_MAP_MESSAGE_CHANNELS.has(MAP_MESSAGE_CHANNEL)) return;
+      window.parent.postMessage({
+        type: "versorgungs-kompass-open-detail",
+        version: MAP_MESSAGE_VERSION,
+        channel: MAP_MESSAGE_CHANNEL,
+        id: boundedMapText(entry.id, 160),
+        realm: activeMapContext,
+        entity: activeMapContext === "contacts" ? "contact" : "person"
+      }, window.location.origin);
+      renderMapDetail(null);
+      return;
+    }
+    renderMapDetail(entry);
+  }
+
+  function entryLocation(entry){
+    return [entry.postal_code, entry.city].filter(Boolean).join(" ") || entry.location || entry.state || "";
+  }
+
+  function entryListLocation(entry){
+    const city = String(entry.city || entry.location || "").replace(/^\d{5}\s*/, "").trim();
+    return [city, entry.state].filter(Boolean).join(", ");
+  }
+
+  function sectorTint(color){
+    const hex = String(color || "#155fe4").replace("#", "");
+    if (hex.length !== 6) return "rgba(21, 95, 228, 0.12)";
+    const r = Number.parseInt(hex.slice(0, 2), 16);
+    const g = Number.parseInt(hex.slice(2, 4), 16);
+    const b = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.12)`;
+  }
+
+  function sectorShadow(color){
+    const hex = String(color || "#155fe4").replace("#", "");
+    if (hex.length !== 6) return "rgba(21, 95, 228, 0.18)";
+    const r = Number.parseInt(hex.slice(0, 2), 16);
+    const g = Number.parseInt(hex.slice(2, 4), 16);
+    const b = Number.parseInt(hex.slice(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, 0.20)`;
+  }
+
+  function avatarHtml(entry){
+    const imageUrl = safeImageUrl(entry.image);
+    const sectorColor = mapCategoryColor(entry.category || "");
+    if (imageUrl) {
+      return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`;
+    }
+    return `<span class="item-avatar item-avatar--sector-ring" style="--avatar-sector-color:${escapeHtml(sectorColor)}">${escapeHtml(initials(entry.name))}</span>`;
+  }
+
+  function missingEntryFields(entry){
+    const missing = [];
+    if (!contactChannelsRestricted(entry)) {
+      if (!hasValue(entry.email)) missing.push("E-Mail");
+      if (!hasValue(entry.phone)) missing.push("Telefon");
+    }
+    if (!hasValue(entry.linkedin)) missing.push("LinkedIn");
+    if (!hasValue(entry.person_title)) missing.push("Fachrichtung");
+    if (!ownerValuesForEntry(entry).length) missing.push("Owner");
+    return missing;
+  }
+
+  function mapDetailLine(label, value, href = ""){
+    const present = hasValue(value);
+    const safeHref = safeNavigationUrl(href);
+    return `
+      <div class="map-detail-line ${present ? "" : "map-detail-line-empty"}">
+        <span class="map-detail-label">${escapeHtml(label)}</span>
+        <span class="map-detail-value">${present && safeHref ? `<a href="${escapeHtml(safeHref)}" ${safeHref.startsWith("http") ? `target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(value)}</a>` : escapeHtml(present ? value : "Nicht hinterlegt")}</span>
+      </div>
+    `;
+  }
+
+  function detailLineHtml(label, value, options = {}){
+    const empty = options.empty || !hasValue(String(value || "").replace(/<[^>]+>/g, ""));
+    const restricted = options.restricted === true;
+    return `
+      <div class="detail-line${empty ? " detail-line--empty" : ""}${restricted ? " detail-line--restricted" : ""}">
+        <span class="detail-line__label">${escapeHtml(label)}</span>
+        <span class="detail-line__value">${value || escapeHtml(options.emptyLabel || "Nicht hinterlegt")}</span>
+      </div>
+    `;
+  }
+
+  function detailLine(label, value, options = {}){
+    const text = hasValue(value) ? escapeHtml(value) : "";
+    return detailLineHtml(label, text, { ...options, empty: !hasValue(value) });
+  }
+
+  function detailContactLine(label, value, href = "", options = {}){
+    if (options.restricted === true) {
+      return detailLineHtml(label, escapeHtml("Nur für Owner sichtbar"), { restricted: true });
+    }
+    const present = hasValue(value);
+    const safeHref = safeNavigationUrl(href);
+    const content = present && safeHref
+      ? `<a href="${escapeHtml(safeHref)}" ${safeHref.startsWith("http") ? `target="_blank" rel="noopener noreferrer"` : ""}>${escapeHtml(value)}</a>`
+      : escapeHtml(present ? value : "Nicht hinterlegt");
+    return detailLineHtml(label, content, { empty: !present });
+  }
+
+  const MAP_DETAIL_TAB_LABELS = {
+    overview: "Überblick",
+    contact: "Kontakt",
+    themes: "Themen",
+    notes: "Notizen",
+    activity: "Aktivitäten"
+  };
+  const MAP_DETAIL_TAB_ORDER = Object.keys(MAP_DETAIL_TAB_LABELS);
+  const MAP_DETAIL_PANEL_IDS = {
+    overview: "map-detail-overview",
+    contact: "map-detail-contactways",
+    themes: "map-detail-themes",
+    notes: "map-detail-notes",
+    activity: "map-detail-activity"
+  };
+
+  function mapDetailTabButton(tab, label, activeTab) {
+    const active = tab === activeTab;
+    return `<button
+      class="detail-tab ${active ? "is-active" : ""}"
+      type="button"
+      id="map-detail-tab-${escapeHtml(tab)}"
+      role="tab"
+      data-map-detail-tab="${escapeHtml(tab)}"
+      aria-controls="${escapeHtml(MAP_DETAIL_PANEL_IDS[tab])}"
+      aria-selected="${active ? "true" : "false"}"
+      tabindex="${active ? "0" : "-1"}"
+    >${escapeHtml(label)}</button>`;
+  }
+
+  function mapDetailPanelAttrs(tab, activeTab) {
+    return `class="section-block detail-tab-panel" role="tabpanel" aria-labelledby="map-detail-tab-${escapeHtml(tab)}" tabindex="0" data-map-detail-panel="${escapeHtml(tab)}" ${tab === activeTab ? "" : "hidden"}`;
+  }
+
+  function mapDetailPill(label, color = "#155fe4"){
+    if (!hasValue(label)) return "";
+    return `<span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(label)}</span>`;
+  }
+
+  function mapPriorityPill(value){
+    if (!hasValue(value)) return "";
+    const normalized = normalize(value).replace(/\s+/g, "-");
+    return `<span class="contact-priority-pill contact-priority-pill--${escapeHtml(normalized)}">${escapeHtml(value)}</span>`;
+  }
+
+  function mapOwnerControl(entry){
+    const ownerLabel = (Array.isArray(entry.ownerLabels) && entry.ownerLabels.length ? entry.ownerLabels : splitOwnerTokens(entry.owner)).join(", ");
+    return `<span class="detail-owner-trigger">${escapeHtml(ownerLabel || "Keinen Owner zuweisen")}</span>`;
+  }
+
+  function formatDetailDate(value){
+    if (!hasValue(value)) return "";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return new Intl.DateTimeFormat("de-DE").format(date);
+  }
+
+  function buildMapDetailMiniMap(entry){
+    const lat = Number.parseFloat(entry.lat);
+    const lon = Number.parseFloat(entry.lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      return `
+        <div class="detail-mini-map">
+          <div class="detail-mini-map-empty">Noch keine Koordinaten für diesen Kontakt hinterlegt.</div>
+        </div>
+      `;
+    }
+    const src = `./versorgungs-kompass-contact-mini-map.html?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`;
+    return `
+      <div class="detail-mini-map">
+        <iframe
+          class="detail-mini-map-frame"
+          title="Standortkarte Deutschland"
+          src="${src}"
+          loading="lazy"
+          tabindex="-1"
+          sandbox="allow-scripts"
+          referrerpolicy="no-referrer"
+        ></iframe>
+      </div>
+    `;
+  }
+
+  function activateMapDetailTab(entry, tab, { focus = true } = {}){
+    if (!MAP_DETAIL_TAB_ORDER.includes(tab)) return;
+    mapDetailActiveTab = tab;
+    renderMapDetail(entry);
+    if (focus) {
+      requestAnimationFrame(() => {
+        elMapDetailPanel?.querySelector(`[data-map-detail-tab="${CSS.escape(tab)}"]`)?.focus();
+      });
+    }
+  }
+
+  function renderMapDetail(entry){
+    if (!elMapDetailPanel) return;
+    if (!entry) {
+      elWorkspace?.classList.remove('has-map-detail');
+      document.body.classList.remove('has-map-detail');
+      elMapDetailPanel.innerHTML = "";
+      mapDetailActiveTab = "overview";
+      return;
+    }
+    const location = entryLocation(entry);
+    const missing = missingEntryFields(entry);
+    const themeTags = Array.isArray(entry.themes) ? entry.themes : [];
+    const sectorColor = mapCategoryColor(entry.category);
+    const activeTab = mapDetailActiveTab || "overview";
+    const entries = filteredEntries();
+    const currentIndex = entries.findIndex((item) => item.id === entry.id);
+    const counterText = currentIndex >= 0 ? `${currentIndex + 1} von ${entries.length} Kontakten` : "Kontaktprofil";
+    const updatedLabel = formatDetailDate(entry.updatedAt);
+    const roleText = hasValue(entry.contact_role) ? entry.contact_role : "";
+    const imageUrl = safeImageUrl(entry.image);
+    const avatar = imageUrl
+      ? `<span class="avatar"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(entry.name)}" loading="lazy" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}" /></span>`
+      : escapeHtml(initials(entry.name));
+    elWorkspace?.classList.add('has-map-detail');
+    document.body.classList.add('has-map-detail');
+    elMapDetailPanel.innerHTML = `
+      <div class="detail-toolbar">
+        <div class="detail-counter">${escapeHtml(counterText)}</div>
+        <div class="detail-toolbar-actions">
+          <button class="action-button detail-profile-edit" type="button" id="map-detail-edit">Bearbeiten</button>
+          <button class="detail-close" type="button" id="map-detail-close" aria-label="Details schließen">&times;</button>
+        </div>
+      </div>
+      <div class="detail-content">
+        <div class="detail-profile">
+          <section class="detail-profile-top">
+            <div class="detail-profile-main">
+              ${imageUrl ? avatar : `<span class="avatar">${avatar}</span>`}
+              <div class="detail-profile-copy">
+                <h3 id="map-detail-title" tabindex="-1">${escapeHtml(entry.name)}</h3>
+                <div class="detail-profile-role">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}</div>
+                ${roleText ? `<div class="detail-profile-subline">${escapeHtml(roleText)}</div>` : ""}
+              </div>
+            </div>
+            <div class="detail-profile-meta">
+              <div class="detail-meta-control">
+                <span class="detail-meta-control__label">Owner</span>
+                ${mapOwnerControl(entry)}
+              </div>
+            </div>
+          </section>
+
+          <div class="detail-tabs" role="tablist" aria-label="Detailbereiche">
+            ${MAP_DETAIL_TAB_ORDER.map((tab) => mapDetailTabButton(tab, MAP_DETAIL_TAB_LABELS[tab], activeTab)).join("")}
+          </div>
+
+          <section ${mapDetailPanelAttrs("overview", activeTab)} id="map-detail-overview">
+            <h4 class="detail-section-title">Stammdaten</h4>
+            <div class="detail-line-list">
+              ${detailLine("Organisation", entry.organization)}
+              ${detailLine("Sektor", entry.category)}
+              ${detailLine("Fachrichtung", entry.person_title, { emptyLabel: "Bitte wählen" })}
+              ${detailLine("Rolle", roleText)}
+              ${detailLine("Ort", location)}
+              ${detailLine("Bundesland", entry.state)}
+              ${entry.mapPositionSource === "organization" ? detailLine("Kartenposition", "Organisation") : ""}
+              ${detailLineHtml("Priorität", mapPriorityPill(entry.priority), { empty: !hasValue(entry.priority) })}
+              ${updatedLabel ? detailLine("Aktualisiert", updatedLabel) : ""}
+            </div>
+            <div class="section-block">
+              <h4 class="detail-section-title">Standort</h4>
+              <article class="detail-info-card detail-info-card--map">
+                ${buildMapDetailMiniMap(entry)}
+              </article>
+            </div>
+          </section>
+
+          <section ${mapDetailPanelAttrs("contact", activeTab)} id="map-detail-contactways">
+            <h4 class="detail-section-title">Kontakt</h4>
+            <div class="detail-line-list">
+              ${detailContactLine("E-Mail", entry.email, entry.email ? `mailto:${entry.email}` : "", { restricted: contactChannelsRestricted(entry) })}
+              ${detailContactLine("Telefon", entry.phone, entry.phone ? `tel:${entry.phone}` : "", { restricted: contactChannelsRestricted(entry) })}
+              ${detailContactLine("LinkedIn", entry.linkedin ? "Profil öffnen" : "", entry.linkedin)}
+              ${detailContactLine("Website", entry.url, entry.url)}
+            </div>
+          </section>
+
+          <section ${mapDetailPanelAttrs("themes", activeTab)} id="map-detail-themes">
+            <h4 class="detail-section-title">Themen${themeTags.length ? ` (${themeTags.length})` : ""}</h4>
+            <div class="detail-line-list">
+              <div class="detail-info-card">
+                <div class="detail-chip-row">
+                  ${themeTags.length ? themeTags.map((tag) => `<span class="sector-pill">${escapeHtml(tag)}</span>`).join("") : `<span class="detail-profile-subline">Noch keine Themen hinterlegt.</span>`}
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <section ${mapDetailPanelAttrs("notes", activeTab)} id="map-detail-notes">
+            <h4 class="detail-section-title">Notizen</h4>
+            <div class="detail-line-list">
+              <div class="detail-info-card">
+                <div class="${entry.note ? "" : "detail-profile-subline"}">${escapeHtml(entry.note || "Keine Notiz hinterlegt")}</div>
+              </div>
+            </div>
+          </section>
+
+          <section ${mapDetailPanelAttrs("activity", activeTab)} id="map-detail-activity">
+            <div class="detail-info-card">
+              <h4 class="detail-section-title">Verlauf</h4>
+              <div class="detail-profile-subline">Änderungen und Importereignisse werden im Kontakte-Tab angezeigt.</div>
+            </div>
+          </section>
+
+          <div class="detail-bottom-actions">
+            <button class="action-button action-button--danger" type="button" id="map-detail-archive">Kontakt archivieren</button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.getElementById('map-detail-edit')?.addEventListener('click', () => openEntryDetail(entry));
+    document.getElementById('map-detail-archive')?.addEventListener('click', () => openEntryDetail(entry));
+    document.getElementById('map-detail-close')?.addEventListener('click', () => {
+      const shouldResetMap = mapMovedForActiveContact;
+      const returnFocusId = entry.id;
+      activeMapContactId = "";
+      mapMovedForActiveContact = false;
+      renderMapDetail(null);
+      render();
+      renderList(filteredEntries());
+      if (shouldResetMap) {
+        if (selectedState) fitMapToState(selectedState);
+        else fitMapToGermany();
+      }
+      updateMapResetButton();
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-map-contact-id="${CSS.escape(returnFocusId)}"]`)?.focus();
+      });
+    });
+    elMapDetailPanel.querySelectorAll('[data-map-detail-tab]').forEach((button) => {
+      button.addEventListener('click', () => {
+        activateMapDetailTab(entry, button.dataset.mapDetailTab || "overview");
+      });
+      button.addEventListener('keydown', (event) => {
+        const currentTab = button.dataset.mapDetailTab || "overview";
+        const currentIndex = MAP_DETAIL_TAB_ORDER.indexOf(currentTab);
+        let nextIndex = currentIndex;
+        if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % MAP_DETAIL_TAB_ORDER.length;
+        else if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + MAP_DETAIL_TAB_ORDER.length) % MAP_DETAIL_TAB_ORDER.length;
+        else if (event.key === "Home") nextIndex = 0;
+        else if (event.key === "End") nextIndex = MAP_DETAIL_TAB_ORDER.length - 1;
+        else return;
+        event.preventDefault();
+        activateMapDetailTab(entry, MAP_DETAIL_TAB_ORDER[nextIndex]);
+      });
+    });
+  }
+
+  function renderMobilePreview(entry = null){
+    if (!elMobileMapPreview) return;
+    if (!entry || !isMobileLayout()) {
+      if (!entry) mobilePreviewContactId = "";
+      elMobileMapPreview.hidden = true;
+      elMobileMapPreview.innerHTML = "";
+      return;
+    }
+    mobilePreviewContactId = entry.id;
+    const cityLine = [entry.city, entry.state].filter(Boolean).join(", ");
+    const imageUrl = safeImageUrl(entry.image);
+    const previewAvatar = imageUrl
+      ? `<span class="mobile-map-preview-avatar"><img src="${escapeHtml(imageUrl)}" alt="" loading="eager" decoding="async" referrerpolicy="no-referrer" data-image-fallback="${escapeHtml(initials(entry.name))}"></span>`
+      : `<span class="mobile-map-preview-avatar">${escapeHtml(initials(entry.name))}</span>`;
+    elMobileMapPreview.hidden = false;
+    elMobileMapPreview.innerHTML = `
+      <div class="mobile-map-preview-head">
+        <span class="map-detail-kicker">${escapeHtml(mapLabel("previewKicker", "Kontaktvorschau"))}</span>
+        <button class="mobile-map-preview-close" type="button" id="mobile-map-preview-close" aria-label="Vorschau schließen">&times;</button>
+      </div>
+      <div class="mobile-map-preview-profile">
+        ${previewAvatar}
+        <div>
+          <div class="mobile-map-preview-title">${escapeHtml(entry.name)}</div>
+          <div class="mobile-map-preview-copy">${escapeHtml(entry.organization || "Organisation nicht dokumentiert")}${cityLine ? ` • ${escapeHtml(cityLine)}` : ""}</div>
+        </div>
+      </div>
+      <div class="mobile-map-preview-meta">${previewMetaBadges(entry)}</div>
+      <button class="mobile-map-preview-action" type="button" id="mobile-map-preview-open">${escapeHtml(mapLabel("openDetailLabel", "Details öffnen"))}</button>
+    `;
+    document.getElementById('mobile-map-preview-open')?.addEventListener('click', () => openEntryDetail(entry));
+    document.getElementById('mobile-map-preview-close')?.addEventListener('click', () => {
+      mobilePreviewContactId = "";
+      activeMapContactId = "";
+      elMobileMapPreview.hidden = true;
+      elMobileMapPreview.innerHTML = "";
+      renderList(filteredEntries());
+      updateMapResetButton();
+    });
+  }
+
+  function contactMarkerAccessibleLabel(entry){
+    return [
+      `Standort von ${entry.name || "Kontakt"}`,
+      entry.organization,
+      entryListLocation(entry),
+      entry.category
+    ].filter(Boolean).join(", ");
+  }
+
+  function annotateContactMarker(marker, entry){
+    const label = contactMarkerAccessibleLabel(entry);
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.setAttribute("aria-label", label);
+      if (isInteractiveContactMap()) element.removeAttribute("title");
+      else element.setAttribute("title", label);
+      element.dataset.mapMarkerContactId = entry.id;
+      if (usesQuietContactSelection()) {
+        element.setAttribute("aria-pressed", String(entry.id === activeMapContactId));
+      }
+    });
+    return marker;
+  }
+
+  function bindMapMarkerActivation(marker, activate){
+    const select = (event) => {
+      if (usesQuietContactSelection()) marker.closeTooltip();
+      activate(event);
+    };
+    marker.on('click', select);
+    marker.on('keypress', (event) => {
+      if (event.originalEvent?.key !== "Enter" && event.originalEvent?.key !== " ") return;
+      event.originalEvent.preventDefault();
+      select(event);
+    });
+  }
+
+  function isMapKeyboardActivation(event){
+    return event?.originalEvent?.type === "keypress" || event?.originalEvent?.type === "keydown";
+  }
+
+  function sectorPointFor(d){
+    const color = mapCategoryColor(d.category);
+    const size = isMobileLayout() ? 10 : 12;
+    const icon = L.divIcon({
+      className: '',
+      html: `<div class="cat-marker${activeMapContactId === d.id ? " cat-marker-active" : ""}" style="background:${color};"></div>`,
+      iconSize: [size,size],
+      iconAnchor: [size / 2,size / 2],
+      popupAnchor: [0,-8],
+      tooltipAnchor: [0,-6]
+    });
+    return annotateContactMarker(L.marker([d.lat, d.lon], {
+      icon,
+      autoPanOnFocus: !usesQuietContactSelection(),
+      title: contactMarkerAccessibleLabel(d),
+      alt: contactMarkerAccessibleLabel(d),
+      keyboard: true,
+      riseOnHover: true,
+      riseOffset: 1000000
+    }), d);
+  }
+
+  const GEMATIK_LOCATION_MARKER_PATH = "M256 0C153.755 0 70.573 83.182 70.573 185.426c0 126.888 165.939 313.167 173.004 321.035 6.636 7.391 18.222 7.378 24.846 0 7.065-7.868 173.004-194.147 173.004-321.035C441.425 83.182 358.244 0 256 0zm0 278.719c-51.442 0-93.292-41.851-93.292-93.293S204.559 92.134 256 92.134s93.291 41.851 93.291 93.293-41.85 93.292-93.291 93.292z";
+  const GEMATIK_MARKER_Z_STEP = 100000;
+
+  function gematikMarkerSize(compact = false){
+    const width = window.innerWidth;
+    const viewportSize = width < 576
+      ? [20, 26]
+      : (width < 992 ? [24, 31] : (width < 1440 ? [30, 39] : [34, 44]));
+    if (!compact) return viewportSize;
+    return [
+      Math.max(18, Math.round(viewportSize[0] * 0.76)),
+      Math.max(23, Math.round(viewportSize[1] * 0.76))
+    ];
+  }
+
+  function gematikMarkerDensity(width){
+    if (width < 7) return "micro";
+    if (width < 16) return "compact";
+    return "normal";
+  }
+
+  function gematikMarkerMarkup(active = false, className = "gematik-marker", options = {}){
+    const activeClass = className === "gematik-marker" && active ? " gematik-marker-active" : "";
+    const densityClass = className === "gematik-marker" && options.density
+      ? ` gematik-marker--${options.density}`
+      : "";
+    const markerId = options.id
+      ? ` data-map-marker-id="${escapeHtml(options.id)}"`
+      : "";
+    return `<span class="${className}${activeClass}${densityClass}"${markerId} aria-hidden="true"><svg class="gematik-marker__svg" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" focusable="false"><path fill="#00ff65" d="${GEMATIK_LOCATION_MARKER_PATH}"/></svg></span>`;
+  }
+
+  function gematikMarkerFor(d, options = {}){
+    const compact = options.compact === true;
+    const [width, height] = gematikMarkerSize(compact);
+    const density = gematikMarkerDensity(width);
+    const icon = L.divIcon({
+      className: `gematik-marker-shell gematik-marker-shell--${density}`,
+      html: gematikMarkerMarkup(activeMapContactId === d.id, "gematik-marker", {
+        density,
+        id: d.id
+      }),
+      iconSize: [width, height],
+      iconAnchor: [width / 2, height],
+      popupAnchor: [0, -height],
+      tooltipAnchor: [0, -height + 2]
+    });
+    const accessibleName = contactMarkerAccessibleLabel(d);
+    // Geographic truth is non-negotiable: the marker anchor always remains at
+    // the record's source coordinates. Visual collision handling must never
+    // rewrite this LatLng.
+    return annotateContactMarker(L.marker([d.lat, d.lon], {
+      icon,
+      autoPanOnFocus: !usesQuietContactSelection(),
+      zIndexOffset: options.zIndexOffset || 0,
+      title: accessibleName,
+      alt: accessibleName,
+      keyboard: true,
+      riseOnHover: true,
+      riseOffset: 100000
+    }), d);
+  }
+
+  function markerFor(d, options = {}){
+    return gematikMarkerModeActive ? gematikMarkerFor(d, options) : sectorPointFor(d);
+  }
+
+  function clusterIcon(count, active = false){
+    return L.divIcon({
+      className: '',
+      html: `<div class="map-cluster-marker${active ? " map-cluster-active" : ""}">${count}</div>`,
+      iconSize: null,
+      iconAnchor: [14, 14]
+    });
+  }
+
+  function markerBuckets(entries){
+    if (heatMapActive) return [];
+    if (!clusterModeActive) return entries.map((entry) => [entry]);
+    const zoom = map.getZoom();
+    const gridSize = zoom >= 10 ? 1 : (zoom >= 8 ? 34 : 46);
+    const buckets = new Map();
+
+    entries.forEach((entry) => {
+      const point = map.latLngToLayerPoint([entry.lat, entry.lon]);
+      const key = gridSize <= 1 ? entry.id : `${Math.round(point.x / gridSize)}:${Math.round(point.y / gridSize)}`;
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(entry);
+    });
+
+    return Array.from(buckets.values());
+  }
+
+  function clusterMarkerAccessibleLabel(entries){
+    const statesInCluster = [...new Set(entries.map((entry) => entry.state).filter(Boolean))];
+    const locationLabel = statesInCluster.length === 1
+      ? ` in ${statesInCluster[0]}`
+      : (statesInCluster.length > 1 ? ` in ${statesInCluster.length} Bundesländern` : "");
+    return `Gruppe mit ${entries.length} Kontakten${locationLabel}. Aktivieren, um die Karte zu vergrößern.`;
+  }
+
+  function annotateClusterMarker(marker, entries){
+    const label = clusterMarkerAccessibleLabel(entries);
+    marker.on("add", () => {
+      const element = marker.getElement();
+      if (!element) return;
+      element.setAttribute("role", "button");
+      element.setAttribute("aria-label", label);
+      element.setAttribute("title", label);
+      element.addEventListener("keydown", (event) => {
+        if (event.key !== " " && event.key !== "Spacebar") return;
+        event.preventDefault();
+        marker.fire("click");
+      });
+    });
+    return marker;
+  }
+
+  function highlightMapContact(id, active){
+    markerIndex
+      .filter((entry) => entry.ids.includes(id))
+      .forEach(({ marker, ids }) => {
+        const element = marker.getElement();
+        if (!element) return;
+        const selected = ids.includes(activeMapContactId);
+        const keepHighlight = usesQuietContactSelection() && selected;
+        element.querySelector('.cat-marker')?.classList.toggle('cat-marker-active', active || keepHighlight);
+        element.querySelector('.gematik-marker')?.classList.toggle('gematik-marker-active', active || keepHighlight);
+        element.querySelector('.map-cluster-marker')?.classList.toggle('map-cluster-active', active || selected);
+        if (usesQuietContactSelection() && element.dataset.mapMarkerContactId) {
+          element.setAttribute("aria-pressed", String(selected));
+        }
+      });
+  }
+
+  function fitMapToEntries(entries){
+    if (!entries.length) return;
+    const bounds = L.latLngBounds(entries.map((entry) => [entry.lat, entry.lon]));
+    map.fitBounds(bounds.pad(0.22), { animate: !mapMotionPreference.matches, maxZoom: MAP_MAX_ZOOM });
+  }
+
+  function renderStateFilterMenu(){
+    const counts = states.reduce((acc, state) => {
+      acc[state] = stateEntries(state).length;
+      return acc;
+    }, {});
+
+    const allButtonClass = selectedState ? "map-dropdown-item" : "map-dropdown-item map-dropdown-item-active";
+    elStateFilterMenu.innerHTML = `<button class="${allButtonClass}" type="button" data-state="">
+      ${mapFilterValueMarkup("Alle Bundesländer", stateFlagIcon(""))}
+      <span class="map-dropdown-meta">${allStateEntriesCount()}</span>
+    </button>`;
+
+    states.forEach((state) => {
+      const active = selectedState === state ? " map-dropdown-item-active" : "";
+      elStateFilterMenu.insertAdjacentHTML('beforeend', `<button class="map-dropdown-item${active}" type="button" data-state="${escapeHtml(state)}">
+        ${mapFilterValueMarkup(state, stateFlagIcon(state))}
+        <span class="map-dropdown-meta">${counts[state]}</span>
+      </button>`);
+    });
+
+    Array.from(elStateFilterMenu.querySelectorAll('[data-state]')).forEach((button) => {
+      button.addEventListener('click', () => {
+        const state = button.getAttribute('data-state') || "";
+        resetListPage();
+        setSelectedState(state);
+        closeStateFilterMenu();
+      });
+    });
+  }
+
+  function openStateFilterMenu(){
+    syncStateFilterMenuContainer();
+    elStateFilterMenu.classList.add('map-dropdown-menu-open');
+    updateStateFilterToggle();
+  }
+
+  function closeStateFilterMenu(){
+    elStateFilterMenu.classList.remove('map-dropdown-menu-open');
+    updateStateFilterToggle();
+  }
+
+  function updateStateFilterToggle(){
+    const active = elStateFilterMenu.classList.contains('map-dropdown-menu-open') || !!selectedState;
+    elStateFilterToggle.classList.toggle('map-toggle-active-filter', active);
+    elStateViewFilterToggle.classList.toggle('map-toggle-active-filter', active);
+  }
+
+  function syncStateFilterMenuContainer(){
+    const target = (selectedState && elStateView.classList.contains('state-view-open')) ? elStateViewFilter : elStateFilterDropdown;
+    if (elStateFilterMenu.parentElement !== target) {
+      target.appendChild(elStateFilterMenu);
+    }
+  }
+
+  function ensureStateMap(){
+    if (stateMap) return;
+    stateMap = L.map('state-map', {
+      zoomControl: true,
+      zoomAnimation: !mapMotionPreference.matches,
+      zoomSnap: 1,
+      zoomDelta: 1,
+      wheelPxPerZoomLevel: MAP_WHEEL_PX_PER_ZOOM
+    });
+    stateMapTiles = IS_PUBLIC_DEMO ? null : L.tileLayer(CARTO_TILE_URL, {
+      subdomains: 'abcd',
+      maxZoom: STATE_MAP_MAX_ZOOM,
+      opacity: 0.52,
+      referrerPolicy: CARTO_KEY ? "origin" : "no-referrer",
+      attribution: CARTO_ATTRIBUTION
+    }).addTo(stateMap);
+    stateMap.setMinZoom(MAP_MIN_ZOOM);
+    stateMap.setMaxZoom(STATE_MAP_MAX_ZOOM);
+    stateMapMarkers = L.layerGroup().addTo(stateMap);
+
+    const stateMapHoles = germanyOuterRings(DE_GEOJSON);
+    stateMapMask = L.polygon([worldRing, ...stateMapHoles], {
+      smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+      stroke: false,
+      fillColor: '#fff',
+      fillOpacity: 0.82,
+      interactive: false
+    }).addTo(stateMap);
+
+    stateMapGermanyOutline = L.geoJSON(DE_GEOJSON, {
+      smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+      attribution: STATE_BOUNDARY_ATTRIBUTION,
+      style: {
+        color: 'rgba(20,84,122,0.22)',
+        weight: 1,
+        fill: false
+      },
+      interactive: false
+    }).addTo(stateMap);
+    stateMapCityLabels = L.layerGroup().addTo(stateMap);
+  }
+
+  function renderStateMapCityLabels(feature){
+    if (!stateMapCityLabels) return;
+    stateMapCityLabels.clearLayers();
+    const bounds = L.geoJSON(feature).getBounds();
+    const labels = [
+      ...CITY_LABELS.major.map((city) => ({ ...city, cls: 'major' })),
+      ...CITY_LABELS.capitals.map((city) => ({ ...city, cls: 'capital' })),
+      ...CITY_LABELS.extra.map((city) => ({ ...city, cls: 'extra' }))
+    ];
+
+    labels
+      .filter((city) => bounds.contains([city.lat, city.lon]))
+      .forEach((city) => {
+        L.marker([city.lat, city.lon], {
+          icon: labelIcon(city.name, city.cls),
+          interactive: false,
+          keyboard: false,
+          zIndexOffset: -40
+        }).addTo(stateMapCityLabels);
+      });
+  }
+
+  function renderStateMap(){
+    if (!selectedState) return;
+    ensureStateMap();
+
+    if (stateMapOutline) {
+      stateMap.removeLayer(stateMapOutline);
+      stateMapOutline = null;
+    }
+
+    const feature = stateFeature(selectedState);
+    if (!feature) return;
+    const entries = filteredEntries();
+
+    stateMapOutline = L.geoJSON(feature, {
+      smoothFactor: STATE_BOUNDARY_SMOOTH_FACTOR,
+      style: {
+        color: 'rgba(32,104,148,0.88)',
+        weight: 2,
+        fillColor: 'rgba(32,104,148,0.08)',
+        fillOpacity: 0.12
+      },
+      interactive: false
+    }).addTo(stateMap);
+
+    if (stateMapStateLabel) {
+      stateMap.removeLayer(stateMapStateLabel);
+      stateMapStateLabel = null;
+    }
+    const corner = stateLabelCorner(selectedState);
+    if (corner) {
+      stateMapStateLabel = L.marker(corner, {
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="label-anchor"><div class="state-view-state-label"><svg viewBox="0 0 12 12" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M6 1.4 10.6 3.8v4.4L6 10.6 1.4 8.2V3.8z" fill="rgba(32,104,148,0.9)"/><path d="M6 3.1 8.8 4.5v2.9L6 8.9 3.2 7.4V4.5z" fill="rgba(255,255,255,0.86)"/></svg><span>${selectedState}</span></div></div>`,
+          iconSize: null
+        }),
+        interactive: false,
+        keyboard: false,
+        zIndexOffset: 320
+      }).addTo(stateMap);
+    }
+
+    stateMapMarkers.clearLayers();
+    entries.forEach((entry) => {
+      const marker = markerFor(entry);
+      bindMapPointTooltip(marker, entry);
+      marker.on('click', () => {
+        focusMapContact(entry);
+      });
+      marker.addTo(stateMapMarkers);
+    });
+    renderStateMapCityLabels(feature);
+
+    const bounds = stateMapOutline.getBounds();
+    stateMap.fitBounds(bounds.pad(0.18));
+    stateMap.setMaxBounds(bounds.pad(0.35));
+    stateMap.invalidateSize();
+
+    elStateViewTitle.textContent = selectedState;
+    elStateViewMeta.textContent = `${entries.length} Einträge im aktuellen Filterkontext`;
+  }
+
+  function openStateView(name){
+    if (!name) return;
+    setSelectedState(name);
+  }
+
+  function closeStateView(){
+    setSelectedState("");
+  }
+
+  function setSelectedState(name, { fitBounds = false } = {}){
+    if (selectedState !== name) resetListPage();
+    selectedState = name;
+    activeMapContactId = "";
+    mapMovedForActiveContact = false;
+    elStateFilterLabel.textContent = name || "Bundesland";
+    elStateViewFilterLabel.textContent = name || "Bundesland";
+    renderStateFilterMenu();
+    renderFilters();
+    updateStateFilterToggle();
+    elStateView.classList.remove('state-view-open');
+    elStateView.setAttribute('aria-hidden', 'true');
+    document.querySelector('.map-box').classList.remove('state-mode');
+    syncStateFilterMenuContainer();
+    if (name) {
+      elList.style.display = "block";
+      if (isMobileLayout()) setMobileSheetState('half');
+    }
+    render();
+    if (name && fitBounds) {
+      fitMapToState(name);
+    }
+  }
+
+  function updateMapResetButton(){
+    if (!elMapResetToggle || !elMapResetLabel) return;
+    const hasState = Boolean(selectedState);
+    const hasFocusedContact = Boolean(activeMapContactId);
+    const hasListFilters = Boolean(activeCategoryFilter || activeOwnerFilter || activePriorityFilter || query.trim());
+    elMapResetLabel.textContent = hasState && hasFocusedContact ? "Zum Bundesland" : "Zurücksetzen";
+    elMapResetToggle.classList.toggle('map-toggle-active-neutral', hasState || hasFocusedContact || hasListFilters);
+    elMapResetToggle.classList.toggle('map-toggle-active-home', hasState);
+  }
+
+  function updateMapModeControls(){
+    const markerActive = gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+    const pointsActive = !gematikMarkerModeActive && !heatMapActive && !clusterModeActive;
+    elMarkerToggle?.classList.toggle('map-toggle-active-marker', markerActive);
+    elMarkerToggle?.setAttribute('aria-pressed', markerActive ? 'true' : 'false');
+    elPointsToggle?.classList.toggle('map-toggle-active-filter', pointsActive);
+    elPointsToggle?.setAttribute('aria-pressed', pointsActive ? 'true' : 'false');
+    elHeatMapToggle?.classList.toggle('map-toggle-active-heat', heatMapActive);
+    elHeatMapToggle?.setAttribute('aria-pressed', heatMapActive ? 'true' : 'false');
+    elClusterToggle?.classList.toggle('map-toggle-active-filter', clusterModeActive);
+    elClusterToggle?.setAttribute('aria-pressed', clusterModeActive ? 'true' : 'false');
+    if (elMapStateSelection && elMapStateSelectionLabel) {
+      elMapStateSelection.hidden = !(usesQuietContactSelection() && heatMapActive && selectedState);
+      elMapStateSelectionLabel.textContent = selectedState;
+    }
+  }
+
+  function closeMapFilterDropdowns(except = null){
+    document.querySelectorAll('.map-filter-dropdown.is-open').forEach((dropdown) => {
+      if (dropdown === except) return;
+      dropdown.classList.remove('is-open');
+      dropdown.querySelector('.map-filter-menu')?.setAttribute('hidden', '');
+      dropdown.querySelector('.map-filter-trigger')?.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function mapFilterDropdown({ label, allLabel, value, options, onChange, placeholder = allLabel, triggerId = "", dropdownClass = "", iconForValue = null }){
+    const dropdown = document.createElement('div');
+    dropdown.className = `map-filter-dropdown${dropdownClass ? ` ${dropdownClass}` : ''}`;
+    dropdown.classList.toggle('is-active', Boolean(value));
+
+    const title = document.createElement('span');
+    title.className = 'map-filter-label';
+    title.textContent = label;
+
+    const trigger = document.createElement('button');
+    trigger.type = 'button';
+    trigger.className = 'map-filter-trigger';
+    if (triggerId) trigger.id = triggerId;
+    trigger.setAttribute('aria-haspopup', 'listbox');
+    trigger.setAttribute('aria-expanded', 'false');
+    const triggerLabel = value || placeholder;
+    trigger.setAttribute('aria-label', triggerLabel);
+    trigger.innerHTML = mapFilterValueMarkup(triggerLabel, iconForValue ? iconForValue(value) : "");
+
+    const menu = document.createElement('div');
+    menu.className = 'map-filter-menu';
+    menu.setAttribute('role', 'listbox');
+    menu.hidden = true;
+
+    const entries = [{ value: '', label: allLabel }, ...options.map((option) => ({ value: option, label: option }))];
+    entries.forEach((entry) => {
+      const optionButton = document.createElement('button');
+      optionButton.type = 'button';
+      optionButton.className = `map-filter-option${entry.value === value ? ' is-active' : ''}`;
+      optionButton.setAttribute('role', 'option');
+      optionButton.setAttribute('aria-selected', entry.value === value ? 'true' : 'false');
+      optionButton.setAttribute('aria-label', entry.label);
+      optionButton.innerHTML = mapFilterValueMarkup(entry.label, iconForValue ? iconForValue(entry.value) : "");
+      optionButton.addEventListener('click', () => {
+        closeMapFilterDropdowns();
+        onChange(entry.value);
+      });
+      menu.appendChild(optionButton);
+    });
+
+    trigger.addEventListener('click', (event) => {
+      event.stopPropagation();
+      const shouldOpen = !dropdown.classList.contains('is-open');
+      closeMapFilterDropdowns(dropdown);
+      dropdown.classList.toggle('is-open', shouldOpen);
+      menu.hidden = !shouldOpen;
+      trigger.setAttribute('aria-expanded', shouldOpen ? 'true' : 'false');
+    });
+
+    dropdown.append(title, trigger, menu);
+    return dropdown;
+  }
+
+  function renderFilters(){
+    elFilters.innerHTML = "";
+    if (elMobileMapFilters) elMobileMapFilters.innerHTML = "";
+    if (elMobileQuickFilters) elMobileQuickFilters.innerHTML = "";
+    const categories = availableCategories();
+    const owners = availableOwners();
+    activePriorityFilter = "";
+
+    const buildSectorDropdown = () => mapFilterDropdown({
+      label: mapLabel("categoryLabel", "Sektor"),
+      allLabel: mapLabel("categoryAllLabel", "Alle"),
+      placeholder: "Alle",
+      value: activeCategoryFilter,
+      options: categories,
+      iconForValue: sectorFilterIcon,
+      onChange: (value) => {
+        activeCategoryFilter = value;
+        resetListPage();
+        renderFilters();
+        render();
+      }
+    });
+    const primaryRow = document.createElement('div');
+    primaryRow.className = `map-filter-row map-filter-row--primary${showOwnerFilter && owners.length ? " has-owner-filter" : ""}`;
+    primaryRow.appendChild(buildSectorDropdown());
+    primaryRow.appendChild(mapFilterDropdown({
+      label: "Bundesland",
+      allLabel: "Alle",
+      placeholder: "Alle",
+      value: selectedState,
+      options: states,
+      iconForValue: stateFlagIcon,
+      onChange: (value) => {
+        setSelectedState(value, { fitBounds: Boolean(value) });
+        if (!value) fitMapToGermany();
+      }
+    }));
+    if (showOwnerFilter && owners.length) {
+      primaryRow.appendChild(mapFilterDropdown({
+        label: "Owner",
+        allLabel: "Alle",
+        placeholder: "Alle",
+        value: activeOwnerFilter,
+        options: orderedOwnerFilterValues(owners),
+        iconForValue: ownerFilterAvatarIcon,
+        onChange: (value) => {
+          activeOwnerFilter = value;
+          resetListPage();
+          renderFilters();
+          render();
+        }
+      }));
+    }
+    elFilters.append(primaryRow, buildFilterListSeparator(categories));
+
+    if (elMobileQuickFilters) {
+      elMobileQuickFilters.appendChild(mapFilterDropdown({
+        label: mapLabel("categoryLabel", "Sektor"),
+        allLabel: mapLabel("categoryAllLabel", "Alle"),
+        placeholder: "Alle",
+        triggerId: "mobile-sector-filter",
+        dropdownClass: "mobile-map-quick-filter",
+        value: activeCategoryFilter,
+        options: categories,
+        iconForValue: sectorFilterIcon,
+        onChange: (value) => {
+          activeCategoryFilter = value;
+          resetListPage();
+          renderFilters();
+          render();
+        }
+      }));
+      elMobileQuickFilters.appendChild(mapFilterDropdown({
+        label: "Bundesland",
+        allLabel: "Alle",
+        placeholder: "Alle",
+        triggerId: "mobile-state-filter",
+        dropdownClass: "mobile-map-quick-filter",
+        value: selectedState,
+        options: states,
+        iconForValue: stateFlagIcon,
+        onChange: (value) => {
+          setSelectedState(value, { fitBounds: Boolean(value) });
+          if (!value) fitMapToGermany();
+        }
+      }));
+      if (showOwnerFilter && owners.length) {
+        elMobileQuickFilters.appendChild(mapFilterDropdown({
+          label: "Owner",
+          allLabel: "Alle",
+          placeholder: "Alle",
+          triggerId: "mobile-owner-filter",
+          dropdownClass: "mobile-map-quick-filter",
+          value: activeOwnerFilter,
+          options: orderedOwnerFilterValues(owners),
+          iconForValue: ownerFilterAvatarIcon,
+          onChange: (value) => {
+            activeOwnerFilter = value;
+            resetListPage();
+            renderFilters();
+            render();
+          }
+        }));
+      }
+    }
+
+  }
+
+  function stateDensityLegendMarkup(){
+    const maximumStateCount = Math.max(0, stateCountMax);
+    const itemLabel = maximumStateCount === 1
+      ? mapLabel("itemSingular", "Kontakt")
+      : mapLabel("itemPlural", "Kontakte");
+    return `
+      <div class="map-density-legend">
+        <span class="map-density-legend__label">${escapeHtml(mapLabel("itemPlural", "Kontakte"))} je Bundesland</span>
+        <div class="map-distribution-legend" aria-label="Verteilung je Bundesland: 0 bis ${maximumStateCount} ${escapeHtml(itemLabel)}">
+          <span>0</span>
+          <span class="map-distribution-legend__scale" aria-hidden="true"></span>
+          <span>${maximumStateCount}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderLegend(entries = filteredEntries()){
+    if (!elMapLegendList) return;
+    if (heatMapActive) {
+      elMapLegendList.innerHTML = isInteractiveContactMap() ? stateDensityLegendMarkup() : `
+        <div class="map-distribution-legend" aria-label="Weniger bis mehr Kontakte">
+          <span>weniger</span>
+          <span class="map-distribution-legend__scale" aria-hidden="true"></span>
+          <span>mehr</span>
+        </div>
+      `;
+      return;
+    }
+    if (gematikMarkerModeActive) {
+      const itemLabel = entries.length === 1
+        ? mapLabel("itemSingular", "Kontakt")
+        : mapLabel("itemPlural", "Kontakte");
+      elMapLegendList.innerHTML = `
+        <div class="map-legend-item map-legend-item--contact">
+          <span class="map-legend-pin">${gematikMarkerMarkup(false, "map-legend-marker")}</span>
+          <span><strong>${entries.length}</strong> ${escapeHtml(itemLabel)}</span>
+        </div>
+        ${isInteractiveContactMap() ? "" : stateDensityLegendMarkup()}
+      `;
+      return;
+    }
+    const counts = new Map();
+    entries.forEach((entry) => {
+      const label = entry.category || "Weitere";
+      counts.set(label, (counts.get(label) || 0) + 1);
+    });
+    const rows = [...counts.entries()]
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"));
+    if (!rows.length) {
+      elMapLegendList.innerHTML = `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Keine Treffer</span></div>`;
+      return;
+    }
+    const visibleRows = isContactSectorMode() ? rows : rows.slice(0, 8);
+    const remainingCount = rows.slice(visibleRows.length).reduce((sum, [, count]) => sum + count, 0);
+    elMapLegendList.innerHTML = [
+      ...visibleRows.map(([label]) => `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${mapCategoryColor(label)};"></span><span>${escapeHtml(label)}</span></div>`),
+      remainingCount ? `<div class="map-legend-item"><span class="map-legend-swatch" style="background:${sectorRegistry.fallbackColor};"></span><span>Weitere</span></div>` : "",
+      isContactSectorMode() ? stateDensityLegendMarkup() : ""
+    ].join("");
+  }
+
+  let markerIndex = [];
+
+  function positionMapContactPreview(){
+    if (!mapContactPreviewFromMarker || !activeMapContactId || !elMapContactPreviewHome) return;
+    const mapCanvas = map.getContainer();
+    const marker = mapCanvas.querySelector(`[data-map-marker-contact-id="${CSS.escape(activeMapContactId)}"]`);
+    const mapBounds = mapCanvas.getBoundingClientRect();
+    const markerBounds = marker?.getBoundingClientRect();
+    const overlaps = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+    if (!markerBounds || !overlaps(markerBounds, mapBounds)) {
+      elMapContactPreview.hidden = true;
+      return;
+    }
+
+    elMapContactPreview.hidden = false;
+    const { width, height } = elMapContactPreview.getBoundingClientRect();
+    const mapBox = elMapContactPreviewHome.getBoundingClientRect();
+    const margin = 8;
+    const gap = 8;
+    const pointX = (markerBounds.left + markerBounds.right) / 2;
+    const pointY = (markerBounds.top + markerBounds.bottom) / 2;
+    const viewportTop = Math.max(mapBounds.top, 0);
+    const viewportBottom = Math.min(mapBounds.bottom, window.innerHeight);
+    const fitInViewport = viewportBottom - viewportTop >= height + 2 * margin;
+    const topLimit = (fitInViewport ? viewportTop : mapBounds.top) + margin;
+    const bottomLimit = (fitInViewport ? viewportBottom : mapBounds.bottom) - margin;
+    const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
+    const candidates = [
+      [markerBounds.right + gap, pointY - height / 2],
+      [markerBounds.left - width - gap, pointY - height / 2],
+      [pointX - width / 2, markerBounds.top - height - gap],
+      [pointX - width / 2, markerBounds.bottom + gap]
+    ].map(([x, y]) => {
+      const left = clamp(x, mapBounds.left + margin, mapBounds.right - width - margin);
+      const top = clamp(y, topLimit, bottomLimit - height);
+      return { left, top, right: left + width, bottom: top + height };
+    });
+    const controls = [...elMapContactPreviewHome.querySelectorAll(
+      ".leaflet-control-zoom, .map-mode-controls, .map-state-selection:not([hidden])"
+    )].map((control) => control.getBoundingClientRect());
+    const clearOfMarker = candidates.filter((candidate) => !overlaps(candidate, markerBounds));
+    const position = clearOfMarker.find((candidate) => !controls.some((control) => overlaps(candidate, control)))
+      || clearOfMarker[0]
+      || candidates[0];
+    elMapContactPreview.style.setProperty("--map-contact-preview-x", `${position.left - mapBox.left - elMapContactPreviewHome.clientLeft}px`);
+    elMapContactPreview.style.setProperty("--map-contact-preview-y", `${position.top - mapBox.top - elMapContactPreviewHome.clientTop}px`);
+  }
+
+  function scheduleMapContactPreviewPosition(){
+    if (!mapContactPreviewFromMarker || !activeMapContactId || mapContactPreviewPositionFrame) return;
+    mapContactPreviewPositionFrame = requestAnimationFrame(() => {
+      mapContactPreviewPositionFrame = 0;
+      positionMapContactPreview();
+      if (mapContactPreviewZooming) scheduleMapContactPreviewPosition();
+    });
+  }
+
+  function renderMapContactPreview(entry){
+    if (!elMapContactPreview) return;
+    const listRow = entry && isMobileLayout() && !mapContactPreviewFromMarker
+      ? elList.querySelector(`[data-map-contact-id="${CSS.escape(entry.id)}"]`)
+      : null;
+    const anchored = Boolean(entry && mapContactPreviewFromMarker);
+    elMapContactPreview.classList.toggle("is-list-preview", Boolean(listRow));
+    elMapContactPreview.classList.toggle("is-marker-preview", anchored);
+    if (listRow && listRow.nextElementSibling !== elMapContactPreview) {
+      listRow.after(elMapContactPreview);
+    } else if (!listRow && elMapContactPreview.parentElement !== elMapContactPreviewHome) {
+      elMapContactPreviewHome?.append(elMapContactPreview);
+    }
+    if (!entry) {
+      elMapContactPreview.hidden = true;
+      elMapContactPreview.replaceChildren();
+      mapContactPreviewContent = "";
+      return;
+    }
+    const location = entry.city && entry.city === entry.state
+      ? entry.city
+      : entryListLocation(entry).replace(/^-\s*(?:,\s*|$)/, "");
+    const context = [entry.organization, location].filter(Boolean).join(" · ");
+    const content = JSON.stringify([entry.id, entry.name, entry.image, entry.category, context, anchored]);
+    if (mapContactPreviewContent === content) {
+      if (anchored) positionMapContactPreview();
+      return;
+    }
+    mapContactPreviewContent = content;
+    elMapContactPreview.style.setProperty("--map-contact-preview-sector", mapCategoryColor(entry.category || ""));
+    elMapContactPreview.innerHTML = `
+      <div class="map-contact-preview-profile">
+        ${avatarHtml(entry)}
+        <div class="map-contact-preview-copy">
+          <strong>${escapeHtml(entry.name)}</strong>
+          ${!anchored && context ? `<span>${escapeHtml(context)}</span>` : ""}
+        </div>
+        <button class="map-contact-preview-close" type="button" aria-label="Vorschau schließen">&times;</button>
+      </div>
+      ${anchored ? `
+        <div class="map-point-tooltip__badges map-contact-preview-badges">
+          ${mapTooltipDetailHtml("location", location || "Ort nicht dokumentiert")}
+          ${mapTooltipDetailHtml("organization", String(entry.organization || "").trim() || "Organisation nicht dokumentiert")}
+          ${mapTooltipSectorBadge(entry) || '<span class="map-point-tooltip__sector map-point-tooltip__sector--empty">Sektor nicht dokumentiert</span>'}
+        </div>
+      ` : ""}
+      <div class="map-contact-preview-footer">
+        <button class="map-contact-preview-open" type="button">Kontaktdetails öffnen</button>
+      </div>
+    `;
+    elMapContactPreview.hidden = false;
+    elMapContactPreview.querySelector(".map-contact-preview-open")?.addEventListener("click", () => openEntryDetail(entry));
+    elMapContactPreview.querySelector(".map-contact-preview-close")?.addEventListener("click", () => closeMapContactPreview());
+    if (anchored) positionMapContactPreview();
+  }
+
+  function selectMapContactForPreview(entry, { fromMarker = false, keyboard = false } = {}){
+    const previousId = activeMapContactId;
+    activeMapContactId = entry?.id || "";
+    mapContactPreviewFromMarker = fromMarker;
+    if (previousId) highlightMapContact(previousId, false);
+    if (activeMapContactId) highlightMapContact(activeMapContactId, true);
+    const entries = filteredEntries();
+    const activeIndex = entry ? entries.findIndex((item) => item.id === entry.id) : -1;
+    const targetPage = isMobileLayout() && activeIndex >= 0
+      ? Math.floor(activeIndex / mobileListPageSize) + 1
+      : currentListPage;
+    if (targetPage !== currentListPage) {
+      currentListPage = targetPage;
+      renderList(entries);
+    } else {
+      elList.querySelectorAll("[data-map-contact-id]").forEach((row) => {
+        const selected = row.dataset.mapContactId === activeMapContactId;
+        row.classList.toggle("item-active", selected);
+        row.setAttribute("aria-pressed", String(selected));
+        if (selected) row.setAttribute("aria-current", "true");
+        else row.removeAttribute("aria-current");
+      });
+    }
+    renderMapContactPreview(entry);
+    updateMapResetButton();
+    if (keyboard) elMapContactPreview?.querySelector(".map-contact-preview-open")?.focus({ preventScroll: true });
+    if (entry && elMapContactPreview?.classList.contains("is-list-preview")) {
+      elMapContactPreview.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  function closeMapContactPreview({ restoreFocus = true } = {}){
+    const id = CSS.escape(activeMapContactId);
+    const marker = `[data-map-marker-contact-id="${id}"]`;
+    const row = `[data-map-contact-id="${id}"]`;
+    const focusTargets = mapContactPreviewFromMarker ? [marker, row] : [row, marker];
+    selectMapContactForPreview(null);
+    if (!restoreFocus) return;
+    for (const selector of focusTargets) {
+      const trigger = document.querySelector(selector);
+      if (!trigger?.getClientRects().length) continue;
+      trigger.focus({ preventScroll: true });
+      break;
+    }
+  }
+
+  function dismissMapContactPreview(){
+    if (usesQuietContactSelection() && activeMapContactId) {
+      closeMapContactPreview({ restoreFocus: false });
+    }
+  }
+
+  function focusMapContact(d, { fitState = true, fromMarker = false, keyboard = false } = {}){
+    if (usesQuietContactSelection()) {
+      selectMapContactForPreview(d, { fromMarker, keyboard });
+      return;
+    }
+    activeMapContactId = d.id;
+    mapMovedForActiveContact = Boolean(fitState && !isMobileLayout() && d.state);
+    const entries = filteredEntries();
+    const activeIndex = entries.findIndex((entry) => entry.id === d.id);
+    if (isMobileLayout() && activeIndex >= 0) {
+      currentListPage = Math.floor(activeIndex / mobileListPageSize) + 1;
+    }
+    if (fitState && !isMobileLayout() && d.state) {
+      fitMapToState(d.state);
+    }
+    if (EMBED_MODE) {
+      renderMobilePreview(null);
+      renderMapDetail(null);
+      openEntryDetail(d);
+      renderList(entries);
+      updateMapResetButton();
+      return;
+    }
+    if (isMobileLayout()) {
+      renderMobilePreview(null);
+      renderMapDetail(d);
+    } else {
+      renderMobilePreview(d);
+      renderMapDetail(d);
+    }
+    if (isMobileLayout()) setMobileSheetState('full');
+    render();
+    if (isMobileLayout()) {
+      requestAnimationFrame(() => {
+        document.querySelector(`[data-map-contact-id="${CSS.escape(d.id)}"]`)?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+    }
+    updateMapResetButton();
+  }
+
+  function renderList(entries){
+    elCount.textContent = `${entries.length} / ${(EMBED_MODE ? currentEntries.length : BASE_DATA.length)}`;
+    if (elMobileSheetCount) {
+      elMobileSheetCount.textContent = `${entries.length} ${entries.length === 1 ? mapLabel("itemSingular", "Kontakt") : mapLabel("itemPlural", "Kontakte")}`;
+    }
+    if (elMobileSheetMeta) {
+      elMobileSheetMeta.textContent = selectedState ? `${selectedState}${activeCategoryFilter ? ` • ${activeCategoryFilter}` : ''}` : `Deutschlandweite Ansicht`;
+    }
+    elList.innerHTML = "";
+    if (elMapPagination) elMapPagination.innerHTML = "";
+    if (!entries.length) {
+      elList.innerHTML = `<div class="list-empty">${escapeHtml(mapLabel("emptyTitle", "Keine Kontakte im aktuellen Kartenfilter."))}</div>`;
+      renderMapDetail(null);
+      return;
+    }
+
+    const totalPages = isMobileLayout() ? Math.max(1, Math.ceil(entries.length / mobileListPageSize)) : 1;
+    currentListPage = Math.min(Math.max(1, currentListPage), totalPages);
+    const pageEntries = isMobileLayout()
+      ? entries.slice((currentListPage - 1) * mobileListPageSize, currentListPage * mobileListPageSize)
+      : entries;
+
+    pageEntries.forEach((d) => {
+      const item = document.createElement('button');
+      const isActive = activeMapContactId === d.id;
+      item.type = "button";
+      item.className = `item${isActive ? " item-active" : ""}`;
+      item.dataset.mapContactId = d.id;
+      if (isActive) item.setAttribute("aria-current", "true");
+      const quietSelection = usesQuietContactSelection();
+      if (quietSelection) item.setAttribute("aria-pressed", String(isActive));
+      const color = mapCategoryColor(d.category);
+      const meta = d.organization || "Organisation nicht dokumentiert";
+      const location = entryListLocation(d);
+      item.setAttribute(
+        "aria-label",
+        [d.name, meta, location, d.category, quietSelection ? "Kontakt auswählen" : "Details öffnen"].filter(Boolean).join(", ")
+      );
+      const ownerPill = ownerPillHtml(d);
+      item.innerHTML = `<span class="item-top">
+                          ${avatarHtml(d)}
+                          <span class="item-copy">
+                            <span class="t">${escapeHtml(d.name)}</span>
+                            <span class="item-meta-row">
+                              <span class="m">${escapeHtml(meta)}</span>
+                              <span class="item-badge-row">
+                                <span class="sector-pill" style="--sector-color:${color};--sector-bg:${sectorTint(color)}">${escapeHtml(d.category)}</span>
+                                ${ownerPill}
+                              </span>
+                            </span>
+                          </span>
+                          <span class="item-chevron" aria-hidden="true">›</span>
+                        </span>`;
+      item.addEventListener('click', (event) => {
+        if (quietSelection) {
+          selectMapContactForPreview(d, { keyboard: event.detail === 0 });
+          return;
+        }
+        activeMapContactId = d.id;
+        mapMovedForActiveContact = false;
+        if (EMBED_MODE) {
+          renderMobilePreview(null);
+          renderMapDetail(null);
+          openEntryDetail(d);
+          renderList(entries);
+          updateMapResetButton();
+          return;
+        }
+        if (isMobileLayout()) {
+          renderMobilePreview(null);
+          renderMapDetail(d);
+          renderList(entries);
+          updateMapResetButton();
+          if (event.detail === 0) {
+            requestAnimationFrame(() => document.getElementById("map-detail-title")?.focus());
+          }
+          return;
+        }
+        focusMapContact(d, { fitState: false });
+        if (event.detail === 0) {
+          requestAnimationFrame(() => document.getElementById("map-detail-title")?.focus());
+        }
+      });
+      item.addEventListener('mouseenter', () => {
+        item.classList.add('item-map-hover');
+        highlightMapContact(d.id, true);
+      });
+      item.addEventListener('mouseleave', () => {
+        item.classList.remove('item-map-hover');
+        highlightMapContact(d.id, false);
+      });
+      item.addEventListener('focus', () => {
+        item.classList.add('item-map-hover');
+        highlightMapContact(d.id, true);
+      });
+      item.addEventListener('blur', () => {
+        item.classList.remove('item-map-hover');
+        highlightMapContact(d.id, false);
+      });
+      elList.appendChild(item);
+    });
+
+    if (elMapPagination && isMobileLayout() && totalPages > 1) {
+      elMapPagination.innerHTML = [
+        `<button class="map-page-button" type="button" data-page-nav="prev" ${currentListPage === 1 ? "disabled" : ""} aria-label="Vorherige Seite">‹</button>`,
+        ...Array.from({ length: totalPages }, (_, index) => {
+          const page = index + 1;
+          return `<button class="map-page-button ${page === currentListPage ? "is-active" : ""}" type="button" data-page="${page}">${page}</button>`;
+        }),
+        `<button class="map-page-button" type="button" data-page-nav="next" ${currentListPage === totalPages ? "disabled" : ""} aria-label="Nächste Seite">›</button>`
+      ].join("");
+      elMapPagination.querySelectorAll("[data-page]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentListPage = Number(button.dataset.page);
+          renderList(entries);
+        });
+      });
+      elMapPagination.querySelectorAll("[data-page-nav]").forEach((button) => {
+        button.addEventListener("click", () => {
+          currentListPage += button.dataset.pageNav === "next" ? 1 : -1;
+          renderList(entries);
+        });
+      });
+    }
+  }
+
+  function render(){
+    const focusedPreviewControl = elMapContactPreview?.contains(document.activeElement)
+      ? document.activeElement
+      : null;
+    markerLayer.clearLayers();
+    markerIndex = [];
+
+    const filtered = filteredEntries();
+    const showStatePins = isInteractiveContactMap() && heatMapActive && Boolean(selectedState);
+    if (activeMapContactId && !filtered.some((entry) => entry.id === activeMapContactId)) {
+      activeMapContactId = "";
+      mapMovedForActiveContact = false;
+      renderMapDetail(null);
+    }
+    const contactMap = isInteractiveContactMap();
+    const showDensityBorders = contactMap && (heatMapActive || isContactSectorMode());
+    const contextLayer = showDensityBorders ? europeLandContext : neighboringCountries;
+    for (const layer of [neighboringCountries, europeLandContext]) {
+      if (contactMap && layer === contextLayer) {
+        if (!map.hasLayer(layer)) layer.addTo(map);
+      } else if (map.hasLayer(layer)) {
+        layer.remove();
+      }
+    }
+    if (showDensityBorders) {
+      germanyLayer.setStyle({ stroke: false, fillColor: CONTACT_MAP_BOUNDARY_COLOR, fillOpacity: 1 });
+      if (!map.hasLayer(contactStateBoundaries)) contactStateBoundaries.addTo(map);
+    } else {
+      germanyLayer.resetStyle();
+      if (map.hasLayer(contactStateBoundaries)) contactStateBoundaries.remove();
+    }
+    renderStateFilterMenu();
+    buildStateHeatLayer(filtered);
+    refreshStateInteractionLayer();
+
+    if ((gematikMarkerModeActive && !heatMapActive) || showStatePins) {
+      filtered.forEach((entry, entryIndex) => {
+        const marker = gematikMarkerFor(entry, {
+          compact: showStatePins,
+          // Stable list order determines the pointer target for overlapping
+          // icons without changing any geographic coordinate. Covered records
+          // remain keyboard-addressable through their own Leaflet marker.
+          zIndexOffset: (filtered.length - entryIndex) * GEMATIK_MARKER_Z_STEP
+        });
+        bindMapPointTooltip(marker, entry);
+        const activateMarker = (event) => {
+          focusMapContact(entry, { fitState: !showStatePins, fromMarker: true, keyboard: isMapKeyboardActivation(event) });
+        };
+        bindMapMarkerActivation(marker, activateMarker);
+        markerIndex.push({
+          marker,
+          ids: [entry.id],
+          data: entry,
+          sourceLatLng: [entry.lat, entry.lon]
+        });
+        markerLayer.addLayer(marker);
+      });
+    } else markerBuckets(filtered).forEach((bucket) => {
+      if (bucket.length === 1) {
+        const d = bucket[0];
+        const m = sectorPointFor(d);
+        bindMapPointTooltip(m, d);
+        bindMapMarkerActivation(m, (event) => {
+          focusMapContact(d, { fromMarker: true, keyboard: isMapKeyboardActivation(event) });
+        });
+        markerIndex.push({ marker: m, ids: [d.id], data: d });
+        if (!heatMapActive) {
+          markerLayer.addLayer(m);
+        }
+        return;
+      }
+
+      const active = bucket.some((entry) => entry.id === activeMapContactId);
+      const lat = bucket.reduce((sum, entry) => sum + entry.lat, 0) / bucket.length;
+      const lon = bucket.reduce((sum, entry) => sum + entry.lon, 0) / bucket.length;
+      const marker = annotateClusterMarker(L.marker([lat, lon], {
+        icon: clusterIcon(bucket.length, active),
+        keyboard: true,
+        title: clusterMarkerAccessibleLabel(bucket),
+        riseOnHover: true,
+        riseOffset: 1000000
+      }), bucket);
+      marker.on('click', () => {
+        fitMapToEntries(bucket);
+      });
+      markerIndex.push({ marker, ids: bucket.map((entry) => entry.id), data: bucket[0], entries: bucket });
+      if (!heatMapActive) {
+        markerLayer.addLayer(marker);
+      }
+    });
+
+    if (!heatMapActive || showStatePins) {
+      if (!map.hasLayer(markerLayer)) markerLayer.addTo(map);
+    } else if (map.hasLayer(markerLayer)) {
+      markerLayer.remove();
+    }
+    renderStateOverviewPins(contactMap && heatMapActive && !selectedState ? filtered : []);
+
+    if (heatMapActive) {
+      stateSurfaceLayer.setStyle({ opacity: 0, fillOpacity: 0 });
+      if (stateInteractionLayer && map.hasLayer(stateInteractionLayer)) map.removeLayer(stateInteractionLayer);
+      if (stateHeatLayer && !map.hasLayer(stateHeatLayer)) stateHeatLayer.addTo(map);
+    } else {
+      stateSurfaceLayer.setStyle(isInteractiveContactMap()
+        ? { opacity: 0, fillOpacity: 0 }
+        : BASE_STATE_SURFACE_STYLE);
+      if (stateInteractionLayer && !map.hasLayer(stateInteractionLayer)) stateInteractionLayer.addTo(map);
+      if (stateHeatLayer && map.hasLayer(stateHeatLayer)) map.removeLayer(stateHeatLayer);
+      if (map.hasLayer(stateHeatCountLayer)) map.removeLayer(stateHeatCountLayer);
+    }
+    updateLabelVisibility(filtered);
+
+    renderList(filtered);
+    renderLegend(filtered);
+    updateMapResetButton();
+    updateMapModeControls();
+    renderMapActiveFilters();
+
+    const activePreview = filtered.find((entry) => entry.id === mobilePreviewContactId) || filtered.find((entry) => entry.id === activeMapContactId);
+    renderMapContactPreview(usesQuietContactSelection() ? activePreview || null : null);
+    if (focusedPreviewControl?.isConnected && document.activeElement !== focusedPreviewControl) {
+      focusedPreviewControl.focus({ preventScroll: true });
+    }
+    if (EMBED_MODE) {
+      renderMobilePreview(null);
+      renderMapDetail(null);
+    } else if (isMobileLayout()) {
+      renderMobilePreview(null);
+      if (activePreview) renderMapDetail(activePreview);
+    } else {
+      renderMobilePreview(activePreview || null);
+    }
+    if (!activePreview && isMobileLayout() && mobileSheetState === 'half') {
+      setMobileSheetState('collapsed');
+    }
+
+    if (selectedState && elStateView.classList.contains('state-view-open')) {
+      renderStateMap();
+    }
+  }
+
+  elSearch.addEventListener('input', (e) => {
+    query = e.target.value;
+    resetListPage();
+    syncSearchClearButton();
+    render();
+  });
+
+  elSearchClear?.addEventListener('click', () => {
+    query = "";
+    elSearch.value = "";
+    resetListPage();
+    syncSearchClearButton();
+    render();
+    elSearch.focus();
+  });
+
+  elStateFilterToggle.addEventListener('click', () => {
+    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+    if (open) closeStateFilterMenu();
+    else openStateFilterMenu();
+  });
+
+  elStateViewFilterToggle.addEventListener('click', () => {
+    const open = elStateFilterMenu.classList.contains('map-dropdown-menu-open');
+    if (open) closeStateFilterMenu();
+    else openStateFilterMenu();
+  });
+
+  elStateViewClose.addEventListener('click', () => {
+    closeStateView();
+  });
+
+  elMobileSheetToggle?.addEventListener('click', () => {
+    cycleMobileSheetState();
+  });
+
+  elMapListToggle?.addEventListener('click', () => {
+    toggleMapList();
+  });
+
+  elMapStateSelectionReset?.addEventListener('click', () => {
+    setSelectedState("");
+    fitMapToGermany();
+    elHeatMapToggle?.focus({ preventScroll: true });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    closeMapFilterDropdowns();
+    if (elMapContactPreview?.contains(document.activeElement)) closeMapContactPreview();
+  });
+
+  window.addEventListener('resize', () => {
+    if (isMobileLayout() && mapListCollapsed) setMapListCollapsed(false);
+  });
+
+  document.querySelector('.panel')?.addEventListener('pointerdown', (event) => {
+    if (isMobileLayout()) event.stopPropagation();
+  });
+
+  document.querySelector('.panel')?.addEventListener('touchmove', (event) => {
+    if (isMobileLayout()) event.stopPropagation();
+  }, { passive: true });
+
+  document.addEventListener('click', (event) => {
+    if (!event.target.closest('.map-filter-dropdown')) {
+      closeMapFilterDropdowns();
+    }
+    if (!event.target.closest('.map-dropdown') && !event.target.closest('.state-view-filter')) {
+      closeStateFilterMenu();
+    }
+  });
+  document.addEventListener("click", (event) => {
+    // A drag ending over the card can dispatch a click on the shared map box.
+    if (event.target === elMapContactPreviewHome && map.dragging.moved()) return;
+    if (event.target instanceof Element && !event.target.closest("#map, #map-contact-preview, [data-map-contact-id]")) {
+      dismissMapContactPreview();
+    }
+  }, true);
+
+  elMarkerToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = true;
+    heatMapActive = false;
+    clusterModeActive = false;
+    render();
+  });
+
+  elPointsToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
+    heatMapActive = false;
+    clusterModeActive = false;
+    render();
+  });
+
+  elHeatMapToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
+    heatMapActive = true;
+    clusterModeActive = false;
+    render();
+  });
+
+  elClusterToggle?.addEventListener('click', () => {
+    gematikMarkerModeActive = false;
+    clusterModeActive = true;
+    heatMapActive = false;
+    render();
+  });
+
+  elMapResetToggle?.addEventListener('click', () => {
+    resetListPage();
+    if (selectedState && activeMapContactId) {
+      activeMapContactId = "";
+      render();
+      fitMapToState(selectedState);
+      return;
+    }
+    resetMapFilters();
+    fitMapToGermany();
+  });
+
+  renderFilters();
+  renderStateFilterMenu();
+  setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+  map.on("click", (event) => {
+    if (!event.originalEvent?.target?.closest?.("[data-map-marker-contact-id]")) {
+      dismissMapContactPreview();
+    }
+  });
+  map.on('moveend', () => {
+    // Leaflet keeps individual points and polygons in place. Only clusters
+    // depend on the projected pixel grid and need to be rebuilt after moving.
+    if (clusterModeActive) render();
+  });
+  map.on("move resize", scheduleMapContactPreviewPosition);
+  map.on("zoomanim", () => {
+    mapContactPreviewZooming = true;
+    scheduleMapContactPreviewPosition();
+  });
+  map.on("zoomend", () => {
+    mapContactPreviewZooming = false;
+    scheduleMapContactPreviewPosition();
+  });
+  window.addEventListener("scroll", scheduleMapContactPreviewPosition, { passive: true });
+  render();
+  window.addEventListener("message", (event) => {
+    if (event.data?.type === "versorgungs-kompass-map-dismiss-preview" && isTrustedMapParentMessage(event)) {
+      dismissMapContactPreview();
+      return;
+    }
+    const message = sanitizeMapDataMessage(event);
+    if (!message) return;
+    const sameContext = message.context === activeMapContext;
+    const keepStateSelection = sameContext && isInteractiveContactMap() && Boolean(selectedState);
+    const preserveSelection = sameContext && usesQuietContactSelection() && receivedMapData;
+    receivedMapData = true;
+    activeMapContext = message.context;
+    document.body.classList.toggle("contacts-map-context", activeMapContext === "contacts");
+    document.body.classList.toggle("politics-map-context", activeMapContext === "politics");
+    activeMapLabels = message.labels;
+    activeCurrentOwner = message.currentOwner;
+    showOwnerFilter = message.showOwnerFilter;
+    currentEntries = message.contacts.map(toMapEntry).filter(Boolean);
+    if (!keepStateSelection) selectedState = "";
+    if (!preserveSelection) {
+      activeMapContactId = "";
+      mobilePreviewContactId = "";
+      activeOwnerFilter = "";
+      resetListPage();
+    }
+    if (elSearch) {
+      elSearch.placeholder = mapLabel("searchPlaceholder", "Name, Organisation, Ort oder Thema suchen");
+      if (!preserveSelection) {
+        elSearch.value = "";
+        query = "";
+        syncSearchClearButton();
+      }
+    }
+    if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
+    renderMapDetail(null);
+    if (!keepStateSelection) setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+    renderFilters();
+    renderStateFilterMenu();
+    render();
+    map.invalidateSize();
+    if (!preserveSelection && !selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
+  });
+  notifyParentMapReady();
+  window.addEventListener('load', () => {
+    activeCategoryFilter = "";
+    activeOwnerFilter = "";
+    activePriorityFilter = "";
+    query = "";
+    elSearch.value = "";
+    syncSearchClearButton();
+    elSearch.placeholder = mapLabel("searchPlaceholder", "Name, Organisation, Ort oder Thema suchen");
+    if (elPanelTitle) elPanelTitle.textContent = mapLabel("listTitle", "Kontakte");
+    renderFilters();
+    renderStateFilterMenu();
+    setMobileSheetState(isMobileLayout() ? 'full' : 'desktop');
+    render();
+    map.invalidateSize();
+    if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
+    notifyParentMapReady();
+  });
+  window.addEventListener('resize', () => {
+    const mobileLayout = isMobileLayout();
+    if (mobileLayout !== lastMobileLayout) resetListPage();
+    lastMobileLayout = mobileLayout;
+    setMobileSheetState(mobileLayout ? mobileSheetState : 'desktop');
+    map.setMinZoom(currentMapMinZoom());
+    map.invalidateSize();
+    if (!selectedState && !activeMapContactId) requestAnimationFrame(() => fitMapToGermany());
+    if (stateMap && elStateView.classList.contains('state-view-open')) {
+      stateMap.invalidateSize();
+    }
+    cancelAnimationFrame(resizeMapFrame);
+    resizeMapFrame = requestAnimationFrame(render);
+  });

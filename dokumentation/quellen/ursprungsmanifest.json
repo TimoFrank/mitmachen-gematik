@@ -1,0 +1,1330 @@
+{
+  "schemaVersion": "versorgungs-kompass-gematik-source-preview/v1",
+  "sourceRevision": "186527df474b7ab2e3e5885e0f28ec40c68e8e9a",
+  "workingTreeDirty": true,
+  "productScope": "gematik-core",
+  "releaseEligible": false,
+  "purpose": "Lokale Quellvorschau. Vor einer Übergabe separat prüfen, im Zielrepository committen und signieren.",
+  "files": [
+    {
+      "path": ".dockerignore",
+      "sourcePath": ".dockerignore",
+      "sha256": "4103ab48de2ccf38a961858ba4e3bd5176e60adede955bc14ada7592af9b082b",
+      "size": 2252
+    },
+    {
+      "path": "api/build-target.mjs",
+      "sourcePath": "api/build-target.mjs",
+      "sha256": "c0c481d437672a780ba2664a0f355401f6e0806d428ce0832d56965773561824",
+      "size": 2810
+    },
+    {
+      "path": "api/care-sector-model.mjs",
+      "sourcePath": "api/care-sector-model.mjs",
+      "sha256": "a1cf028a38b38a090b0a61d0cc9bfeb094ffa27182686874d1efae6302591ec6",
+      "size": 949
+    },
+    {
+      "path": "api/Dockerfile",
+      "sourcePath": "api/Dockerfile",
+      "sha256": "691edf91e3426c55f82a7999d6deefcc3a72ad758d57eb33a7278c7903998062",
+      "size": 1828
+    },
+    {
+      "path": "api/duplicate-identity.mjs",
+      "sourcePath": "api/duplicate-identity.mjs",
+      "sha256": "72eee9406015eb0791191e8d5ceadd3978a546539470b82febeeedfec16baef6",
+      "size": 8845
+    },
+    {
+      "path": "api/gematik-core-policy.mjs",
+      "sourcePath": "api/gematik-core-policy.mjs",
+      "sha256": "9a638e31b95b71a3dc9b26e6479f92cda38c646a251463b444e8d0175d03de7a",
+      "size": 1904
+    },
+    {
+      "path": "api/hospitation-import.mjs",
+      "sourcePath": "api/hospitation-import.mjs",
+      "sha256": "0ce16c4c5cdd83156234fb00d1ded2184846d15d0c140bf39454a30055cb3f50",
+      "size": 48059
+    },
+    {
+      "path": "api/hospitation-observation-append.mjs",
+      "sourcePath": "api/hospitation-observation-append.mjs",
+      "sha256": "6c07c93fd5c3ce87a0ff52e7c4c3d088dab4a8f943818f08afb460b6550b16db",
+      "size": 10297
+    },
+    {
+      "path": "api/package.target-lock.json",
+      "sourcePath": "api/package.target-lock.json",
+      "sha256": "4696ed38c4810bd2aec8759b5cac086a2d861181d57ca591b112451412ead533",
+      "size": 5803
+    },
+    {
+      "path": "api/package.target.json",
+      "sourcePath": "api/package.target.json",
+      "sha256": "b2a9c78fcf483a2a62a258d3a875d5a652ebd7629a3d1f004e819b85034bbfd1",
+      "size": 208
+    },
+    {
+      "path": "api/request-context.mjs",
+      "sourcePath": "api/request-context.mjs",
+      "sha256": "794d1fdc5369e0298670c17b7cb8e5363d2624e35fa0cd55e2f2c63d5b80bc4f",
+      "size": 2167
+    },
+    {
+      "path": "api/request-log-privacy.mjs",
+      "sourcePath": "api/request-log-privacy.mjs",
+      "sha256": "695692d97a5388fad81393d7854282a85f5a3626cfa2a39abe6b6a16314524ca",
+      "size": 3148
+    },
+    {
+      "path": "api/security-policy.mjs",
+      "sourcePath": "api/security-policy.mjs",
+      "sha256": "79876a56784684f8e13b8b5b28922109a9cfde4dc1477e6a28373aa9b3c5b2de",
+      "size": 22056
+    },
+    {
+      "path": "api/server.mjs",
+      "sourcePath": "api/server.mjs",
+      "sha256": "204e7ba9489a30005c25c56c0c6e9040178f99591cbbfdd6487c13973eaa44c8",
+      "size": 447638
+    },
+    {
+      "path": "config/deployment-profile.schema.json",
+      "sourcePath": "config/deployment-profile.schema.json",
+      "sha256": "86b419670864a7405e4d99a3509f6d458ffa2d2b9cd5384bc73d87695597fc8d",
+      "size": 2197
+    },
+    {
+      "path": "config/release.json",
+      "sourcePath": "config/release.json",
+      "sha256": "b2a812b5e92db4fd3bc965b24ff87fd25cd967a7a9aa32242b79250fb49212f5",
+      "size": 3838
+    },
+    {
+      "path": "config/release.schema.json",
+      "sourcePath": "config/release.schema.json",
+      "sha256": "e0ec6df6783a4d723b2296676e56e1e11e68d7d88af441ff03ff7b217a466d7f",
+      "size": 9307
+    },
+    {
+      "path": "config/security/gitleaks.toml",
+      "sourcePath": "config/security/gitleaks.toml",
+      "sha256": "689e41631c75b28f4d07b7f1313bc75ffad274ffa140e6ec80dd91a97e169e50",
+      "size": 2206
+    },
+    {
+      "path": "config/security/gitleaksignore",
+      "sourcePath": "config/security/gitleaksignore",
+      "sha256": "23d21b1b46d56a27d49b2f716619e0dd253e258dc3ef5c2444f0f57283bd9a9f",
+      "size": 4560
+    },
+    {
+      "path": "config/security/semgrep.yml",
+      "sourcePath": "config/security/semgrep.yml",
+      "sha256": "9ba46c129107ec1c3b56f58052dda716364437023a0daafa069340a8493b3fe3",
+      "size": 1466
+    },
+    {
+      "path": "config/target/deployment.json",
+      "sourcePath": "config/target/deployment.json",
+      "sha256": "9f04af62da45bbafe76d0cbbde3d1fd3678c2240629a77dbb9fef470401cefca",
+      "size": 843
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/Chart.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/Chart.yaml",
+      "sha256": "62e8f3805776cc15a6bb4bc408ec67b6002a652bdda2418527c3aef2af387ac0",
+      "size": 174
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/_helpers.tpl",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/_helpers.tpl",
+      "sha256": "806352baf22ba40be8dd689e1e9523378119d6db5ecf22bdb5258653c140737f",
+      "size": 7358
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/backendconfig.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/backendconfig.yaml",
+      "sha256": "f8763b3a2b444c27b144584ca5fc618415bcc7a474e379075cbf69afc292eda4",
+      "size": 1217
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/configmap.yaml",
+      "sha256": "748ab0924b555dc9c6b43b0cbba179a353ec03bab910021662a3ed1c25544671",
+      "size": 3292
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/deployment.yaml",
+      "sha256": "9081c21c0efc06c1616ba73be12c33d718d9a75cf54822cf8e5ae7aa2941146d",
+      "size": 6246
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/networkpolicy.yaml",
+      "sha256": "d2b25aab9355c30899148e8269cc07773f051b83a492998336ede496a1626689",
+      "size": 5789
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/poddisruptionbudget.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/poddisruptionbudget.yaml",
+      "sha256": "72bf57e9464adb56fe18283c3b606087c9c06b44a98eef4f02aafdbaa8e90c7a",
+      "size": 2240
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/secretsync.yaml",
+      "sha256": "4f8c6e4391b5f71df1bbd8fc3f9dfd1c9cbbb2bfd7893b749cc7366170af563a",
+      "size": 2705
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/service.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/service.yaml",
+      "sha256": "c7a6485c641acb661aae90ef304f151fdcbbabb38f4b8fc00b9e442694286349",
+      "size": 909
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/templates/serviceaccount.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/templates/serviceaccount.yaml",
+      "sha256": "97c737d4b7ca5e280647320f84c34c764858eda91ed37e9eef94917f9e718be8",
+      "size": 432
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/values-target-gematik.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/values-target-gematik.yaml",
+      "sha256": "47257b5b3e410ea2a011815b27106686f423fd649e94577af2138ec2520d5375",
+      "size": 2555
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/values.schema.json",
+      "sourcePath": "deploy/helm/versorgungs-kompass/values.schema.json",
+      "sha256": "f690913941a90f9513bb6007f72f6f4dcd3dca51e64f43a386b82652caddefa9",
+      "size": 35119
+    },
+    {
+      "path": "deploy/helm/versorgungs-kompass/values.yaml",
+      "sourcePath": "deploy/helm/versorgungs-kompass/values.yaml",
+      "sha256": "b66c9c691e0824c5f859b11676070a733035fabe213f7cb43c29056c8fa5a3ed",
+      "size": 9633
+    },
+    {
+      "path": "deploy/jenkins/Jenkinsfile.gematik",
+      "sourcePath": "deploy/jenkins/Jenkinsfile.gematik",
+      "sha256": "b3f9ec34598bb116a7d8cf336f5593b4fcb5a1aa9e7cabf20fbaa3637ffde6f4",
+      "size": 81734
+    },
+    {
+      "path": "deploy/postgres/gematik-core/grants.sql",
+      "sourcePath": "deploy/postgres/gematik-core/grants.sql",
+      "sha256": "b018e5ede61c339c22320ebc017d9a9745595adbc5710f426b3e0db05f262bda",
+      "size": 3881
+    },
+    {
+      "path": "deploy/postgres/gematik-core/migrations/README.md",
+      "sourcePath": "deploy/postgres/gematik-core/migrations/README.md",
+      "sha256": "bc2fd82694bb6040a1d7918f7ec65282301aa6b460128318fdfae73e80724f77",
+      "size": 337
+    },
+    {
+      "path": "deploy/postgres/gematik-core/README.md",
+      "sourcePath": "deploy/postgres/gematik-core/README.md",
+      "sha256": "44e6734ec8eab6ea46550a720ab63f3998e87a740c33d6bc7f98fc6458fb08ab",
+      "size": 1070
+    },
+    {
+      "path": "deploy/postgres/gematik-core/runtime-role.sql",
+      "sourcePath": "deploy/postgres/gematik-core/runtime-role.sql",
+      "sha256": "96e09aea5fdca7a8f868a60349e5d183a2e47b8cceb5f29ac3a2a40697a614f0",
+      "size": 929
+    },
+    {
+      "path": "deploy/postgres/gematik-core/schema.sql",
+      "sourcePath": "deploy/postgres/gematik-core/schema.sql",
+      "sha256": "88d36fc80dd85ff4c70b4bca214ed8b5b6b048f1baf19f020427ddf058139482",
+      "size": 51607
+    },
+    {
+      "path": "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
+      "sourcePath": "deploy/postgres/poc-gematik/bind-oidc-identity.sql",
+      "sha256": "45ae3f04a21b0dcfce73509f5ae0eda436c518a12371ee01df15a741ea3aad59",
+      "size": 4172
+    },
+    {
+      "path": "dokumentation/betrieb-und-deployment/BETRIEB_GEMATIK.md",
+      "sourcePath": "dokumentation/betrieb-und-deployment/BETRIEB_GEMATIK.md",
+      "sha256": "572199051e67a886143560eb6310359472fb6ba42c679f9c6efa6a9482ae0d55",
+      "size": 6032
+    },
+    {
+      "path": "dokumentation/gematik/ANWENDUNG.md",
+      "sourcePath": "dokumentation/gematik/ANWENDUNG.md",
+      "sha256": "db9519e295f28e37d06de2010833fd999543b323837091f747118c22cb116ce1",
+      "size": 3639
+    },
+    {
+      "path": "dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md",
+      "sourcePath": "dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md",
+      "sha256": "10955f135d9a28341ecd07ce3fb28169e86e97b436f3fdf3e61a764689c7f1cd",
+      "size": 4017
+    },
+    {
+      "path": "dokumentation/gematik/DATENSCHUTZ_UND_COMPLIANCE.md",
+      "sourcePath": "dokumentation/gematik/DATENSCHUTZ_UND_COMPLIANCE.md",
+      "sha256": "ec16a4048692fa15f5ee84e883691306f4c1071fbb52b4325c003f9acaa2e392",
+      "size": 4641
+    },
+    {
+      "path": "dokumentation/gematik/ENTWICKLUNG_UND_QA.md",
+      "sourcePath": "dokumentation/gematik/ENTWICKLUNG_UND_QA.md",
+      "sha256": "c42f1fa06f37349eff361271e39959d6b75bc37276eecc274f3abf0f4339e061",
+      "size": 4822
+    },
+    {
+      "path": "dokumentation/gematik/RELEASE_UND_UPDATES.md",
+      "sourcePath": "dokumentation/gematik/RELEASE_UND_UPDATES.md",
+      "sha256": "b722aa37ae72d7d1b26a81a34661e2dfc283191795c8505b28ff29766b42eecc",
+      "size": 4508
+    },
+    {
+      "path": "dokumentation/rechtliches/DATA_NOTICE.md",
+      "sourcePath": "dokumentation/rechtliches/DATA_NOTICE.md",
+      "sha256": "604599209f936e10aa6868a86dddf636d444c8047be0a77a675a07b72351793e",
+      "size": 891
+    },
+    {
+      "path": "dokumentation/rechtliches/NOTICE.md",
+      "sourcePath": "dokumentation/rechtliches/NOTICE.md",
+      "sha256": "4232cb0a1dd326a2186b334e86edb0f08fdeb2a53a03d062a46dad3e9612931d",
+      "size": 1085
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-calendar.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-calendar.css",
+      "sha256": "09239d029ce8ff42cd65f4a43e682435b8a6fdaf5faa51e652fad4d3eb9fff7a",
+      "size": 8052
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-calendar.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-calendar.js",
+      "sha256": "67773b105cb450e52d32c10f2d5b4dcc8bc2d37aa56ad3c440b2b0658069d6f1",
+      "size": 12703
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-dashboard.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-dashboard.css",
+      "sha256": "058d238c62efc81780905fcf091985d4e504831f2bab76708e5a92a5c4988368",
+      "size": 78794
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-dashboard.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-dashboard.js",
+      "sha256": "5547ff411559b425b09aeca7cd8a43858fae6f74509a40db8afb3eca08208bd4",
+      "size": 70916
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-icons.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-icons.js",
+      "sha256": "1ba3058d2000210d0a29978e079003b69f2c29a48e06f6278288df09bb9b0665",
+      "size": 3832
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-observation-steps.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-observation-steps.css",
+      "sha256": "cf48dc56217d36fc09481bc1d6815574f6aece222e00f787e42beb23f9d2661d",
+      "size": 5524
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-observation-steps.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-observation-steps.js",
+      "sha256": "6f7f96b2fee2bb39fc5c6975ff776d74ba3eaad37ea1508ca6ceb55552379285",
+      "size": 11572
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-overview.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-overview.css",
+      "sha256": "e566a462de5d2884cb7c4d7f0fe478c83f3ff9ee4fd3f2d01b606c3afc80f605",
+      "size": 31526
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-overview.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-overview.js",
+      "sha256": "da913b42ff8399fd63cbe9064dc6006c7fff06bf4df2801b65cdafeb1f966985",
+      "size": 26547
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-synthesis.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-synthesis.css",
+      "sha256": "54676f593f115feae0a6984e478325cf63e776ce14814e6effc206aec646327a",
+      "size": 56225
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-synthesis.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-synthesis.js",
+      "sha256": "4a62246f10b3237d34a4adcd5c66893d916ae23adf9f10c607307bfaca95163a",
+      "size": 108247
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-workspace.css",
+      "sourcePath": "frontend/app/hospitation/hospitation-workspace.css",
+      "sha256": "93cee7913c9bb1bb18edba9bfb7f94b289b8b8b700330c14b52f6ead4ec1a92e",
+      "size": 9602
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation-workspace.js",
+      "sourcePath": "frontend/app/hospitation/hospitation-workspace.js",
+      "sha256": "a98c71b1bc0f3e092c77f38f2fbdb478ab03d891f7e7a268ae03b254d553cef6",
+      "size": 3699
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation.css",
+      "sourcePath": "frontend/app/hospitation/hospitation.css",
+      "sha256": "0f4f8bf860a4e374bd68aa8bde0658681a63b8fbbcb2d095e6df8d98cae5a152",
+      "size": 8321
+    },
+    {
+      "path": "frontend/app/hospitation/hospitation.js",
+      "sourcePath": "frontend/app/hospitation/hospitation.js",
+      "sha256": "c256ef3d77acfb6b8247ac9209d8c5c9b3c90a9a03e3ab314f6433a26f7de30e",
+      "size": 4996
+    },
+    {
+      "path": "frontend/app/hospitation/import.css",
+      "sourcePath": "frontend/app/hospitation/import.css",
+      "sha256": "79598e4383c767129da902a116b614588978819fa1d38ec79430cb16d912ee34",
+      "size": 21766
+    },
+    {
+      "path": "frontend/app/hospitation/import.html",
+      "sourcePath": "frontend/app/hospitation/import.html",
+      "sha256": "869da555e317ab0e3880d56dbdb4937d96f0b5702ddd58695edd82ddfc4a13b2",
+      "size": 10695
+    },
+    {
+      "path": "frontend/app/hospitation/import.js",
+      "sourcePath": "frontend/app/hospitation/import.js",
+      "sha256": "eb27e5a1941b52cf1ddfc8817b660ca3359d1e0cdb42a886247c4126122d2492",
+      "size": 27210
+    },
+    {
+      "path": "frontend/app/hospitation/index.html",
+      "sourcePath": "frontend/app/hospitation/index.html",
+      "sha256": "78286a479d6858fd09a9aaef07a7ee134617cf818e9e0d5dd08211c00586b3ab",
+      "size": 4349
+    },
+    {
+      "path": "frontend/app/hospitation/literature/carayon-2006-preview.svg",
+      "sourcePath": "frontend/app/hospitation/literature/carayon-2006-preview.svg",
+      "sha256": "6c31dd4b0f1568a21abb2959a034a1f4fd13b40977c03f63c357d796e6a22a96",
+      "size": 775
+    },
+    {
+      "path": "frontend/app/hospitation/literature/fix-2022-preview.svg",
+      "sourcePath": "frontend/app/hospitation/literature/fix-2022-preview.svg",
+      "sha256": "bd20ad7fbfe9384d54ed2bcbc2cece2240f9a5f2b9a5333390dd899b2867923f",
+      "size": 939
+    },
+    {
+      "path": "frontend/app/hospitation/literature/gale-2013-first-page.png",
+      "sourcePath": "frontend/app/hospitation/literature/gale-2013-first-page.png",
+      "sha256": "0c6ecf1ced8889324d53d082e4c81aef216afe3c37700dca59e5472155298c53",
+      "size": 84867
+    },
+    {
+      "path": "frontend/app/hospitation/literature/hamilton-2019-preview.svg",
+      "sourcePath": "frontend/app/hospitation/literature/hamilton-2019-preview.svg",
+      "sha256": "b99da8e52b951ee7cd6bf274fc2881f0436dfa39ed0d69de48a0feb8c2315e99",
+      "size": 852
+    },
+    {
+      "path": "frontend/app/hospitation/literature/manifest.json",
+      "sourcePath": "frontend/app/hospitation/literature/manifest.json",
+      "sha256": "66c57c33e9ce56183ec60cb75691edfbceb166aebb8e7407dfe02e6f9b2284dd",
+      "size": 2802
+    },
+    {
+      "path": "frontend/app/hospitation/literature/weston-2022-preview.svg",
+      "sourcePath": "frontend/app/hospitation/literature/weston-2022-preview.svg",
+      "sha256": "1431bcfd97d0818177fcff8985bfb2c7ee8cfc7ab1dc778ade3dc4f7149201d8",
+      "size": 914
+    },
+    {
+      "path": "frontend/app/versorgungs-kompass-no-script.css",
+      "sourcePath": "frontend/app/versorgungs-kompass-no-script.css",
+      "sha256": "56484f7a9155bf431c3c04ba9e64133a95ecd3bcb19286998b3b1856cf0e490f",
+      "size": 707
+    },
+    {
+      "path": "frontend/app/versorgungs-kompass-routes.js",
+      "sourcePath": "frontend/app/versorgungs-kompass-routes.js",
+      "sha256": "4c157a506a6ad865ace27a11078bbcf9af6ba0d6c587a777c45650bdd2574fc3",
+      "size": 14078
+    },
+    {
+      "path": "frontend/app/versorgungs-kompass.css",
+      "sourcePath": "frontend/app/versorgungs-kompass.css",
+      "sha256": "0eb28f79a3964c8668615eba77b773cf036440222468fc36aedbb15eb9071e8c",
+      "size": 1239371
+    },
+    {
+      "path": "frontend/app/versorgungs-kompass.html",
+      "sourcePath": "frontend/app/versorgungs-kompass.html",
+      "sha256": "828da3c21fbcc44a3536d285eb65f9c87b8375070ccdb93847ee62ede8c02e26",
+      "size": 251737
+    },
+    {
+      "path": "frontend/app/versorgungs-kompass.js",
+      "sourcePath": "frontend/app/versorgungs-kompass.js",
+      "sha256": "d7386bd1bbaf05e723c3fb8393d4539b356abd44c97dda05bac7255615a8f16d",
+      "size": 2490702
+    },
+    {
+      "path": "frontend/data/activity-model.js",
+      "sourcePath": "frontend/data/activity-model.js",
+      "sha256": "4774128343a8903dd226ba767d978f162ef266e3bd9fea5328ca60b9c7a00fb5",
+      "size": 37997
+    },
+    {
+      "path": "frontend/data/data-service.js",
+      "sourcePath": "frontend/data/data-service.js",
+      "sha256": "061b8e349cecc1200710a7977fcb233f68a122561192b722d7a065de3ff8bf4f",
+      "size": 113877
+    },
+    {
+      "path": "frontend/data/document-text-extractor.js",
+      "sourcePath": "frontend/data/document-text-extractor.js",
+      "sha256": "633fa96c2c415ac163816b231a9606952fc7d11d34f473da6edd416995399bd7",
+      "size": 3821
+    },
+    {
+      "path": "frontend/data/hospitation-export.js",
+      "sourcePath": "frontend/data/hospitation-export.js",
+      "sha256": "fb018ed9f93d87ce6956b584fd72c487d617c4f280043150d1a442870d3ee005",
+      "size": 180558
+    },
+    {
+      "path": "frontend/data/hospitation-model.js",
+      "sourcePath": "frontend/data/hospitation-model.js",
+      "sha256": "7a9b48fe2be417785a0f24d3e42e2b836106c686928d6331ae7c078e0eecf524",
+      "size": 62836
+    },
+    {
+      "path": "frontend/data/runtime-config.js",
+      "sourcePath": "frontend/data/runtime-config.js",
+      "sha256": "c90a2e60c97dd12c9001aa5540325430361c8d85b7692f4f2857e68945b5c0a9",
+      "size": 867
+    },
+    {
+      "path": "frontend/data/sector-registry.js",
+      "sourcePath": "frontend/data/sector-registry.js",
+      "sha256": "3bb7c473e2ae95243c5259c56bfbb571284c25ad958584061fcd1f37e607ff20",
+      "size": 5202
+    },
+    {
+      "path": "frontend/login/auth-config.js",
+      "sourcePath": "frontend/login/auth-config.js",
+      "sha256": "d12dc6d5de0f27538c095e61ef7f8c464f46a1cc67c6bc5875cd2d3169101dd5",
+      "size": 281
+    },
+    {
+      "path": "frontend/login/auth-guard.js",
+      "sourcePath": "frontend/login/auth-guard.js",
+      "sha256": "7533ea3c88fabe1c0ea9c12024e9fef5b85980db252ff70d85faba2c1347f7db",
+      "size": 5781
+    },
+    {
+      "path": "frontend/login/auth-login.js",
+      "sourcePath": "frontend/login/auth-login.js",
+      "sha256": "a74fbd8ba6a734d8fc96d7fa2c9037b1db397f7dfdb00c9961b777e33e52b026",
+      "size": 3459
+    },
+    {
+      "path": "frontend/login/login.css",
+      "sourcePath": "frontend/login/login.css",
+      "sha256": "fbdb33785c628a2371e67b99ee284340a7b2a9874ff2170e4310a36a1f2cfc85",
+      "size": 4944
+    },
+    {
+      "path": "frontend/login/login.html",
+      "sourcePath": "frontend/login/login.html",
+      "sha256": "38ff7fa114c91c4f65bffb88e753bcf6551025dc44062c5bc6208a12bdc0d628",
+      "size": 2429
+    },
+    {
+      "path": "frontend/map/data/city-labels.js",
+      "sourcePath": "frontend/map/data/city-labels.js",
+      "sha256": "70a36671c436ee5118bb33f9809d6fb60ce6f418e6f92c72b52ce890594ce9a8",
+      "size": 42917
+    },
+    {
+      "path": "frontend/map/data/de-geojson.js",
+      "sourcePath": "frontend/map/data/de-geojson.js",
+      "sha256": "b05044b7e3f1e528fad081b72eb68e4022a4bde3e6830b584b4bf11ff13f9502",
+      "size": 259738
+    },
+    {
+      "path": "frontend/map/data/europe-context.js",
+      "sourcePath": "frontend/map/data/europe-context.js",
+      "sha256": "09625b69335e508c59014dae0ca10ff550606bfe16cc45814401fce88e35ac5f",
+      "size": 53193
+    },
+    {
+      "path": "frontend/map/data/README.md",
+      "sourcePath": "frontend/map/data/README.md",
+      "sha256": "c50e1167504a873d3b1d554eef1267ff204089f6a88c2e52ff3aca919d3eb617",
+      "size": 4086
+    },
+    {
+      "path": "frontend/map/data/state-labels.js",
+      "sourcePath": "frontend/map/data/state-labels.js",
+      "sha256": "9d1dcbea31c70c41bc1bd51f6a2cd4ff55a668e36e19221656716dcd034956e5",
+      "size": 1145
+    },
+    {
+      "path": "frontend/map/data/state-polygons-overview.js",
+      "sourcePath": "frontend/map/data/state-polygons-overview.js",
+      "sha256": "f2df165988180b9916fadfac12617372da1475022bf23664527442c9597c1356",
+      "size": 4927
+    },
+    {
+      "path": "frontend/map/data/state-polygons.geojson",
+      "sourcePath": "frontend/map/data/state-polygons.geojson",
+      "sha256": "bf8c7a1dd9608af22403034de4d18ce3c835e64f007b037d29ca2251eb432104",
+      "size": 54352
+    },
+    {
+      "path": "frontend/map/data/state-polygons.js",
+      "sourcePath": "frontend/map/data/state-polygons.js",
+      "sha256": "eb66444fad2dafe607ff892c06bf8b522f58d97d4402a3cd3f9ea67503047065",
+      "size": 89579
+    },
+    {
+      "path": "frontend/map/state-flags/berlin.svg",
+      "sourcePath": "frontend/map/state-flags/berlin.svg",
+      "sha256": "074da48121c10eb35a5549e0d42cf995e5c4e9f98e20a2841e0faea902a52a4e",
+      "size": 2960
+    },
+    {
+      "path": "frontend/map/state-flags/brandenburg.svg",
+      "sourcePath": "frontend/map/state-flags/brandenburg.svg",
+      "sha256": "c8ad323d48c4e5e08d12b82449558c82e873fed17ad9e109b12590ac2cc78b46",
+      "size": 19988
+    },
+    {
+      "path": "frontend/map/state-flags/bremen.svg",
+      "sourcePath": "frontend/map/state-flags/bremen.svg",
+      "sha256": "09c13bc88ce31e4e6e56ee46905248d34a48e61a7de0ebd746a45e2d30308a8a",
+      "size": 196
+    },
+    {
+      "path": "frontend/map/state-flags/niedersachsen.svg",
+      "sourcePath": "frontend/map/state-flags/niedersachsen.svg",
+      "sha256": "b9d025e0795a1ef2bd273888bec3ccbe1ebc5f615cbc3ee1e42d14f50214d14f",
+      "size": 18261
+    },
+    {
+      "path": "frontend/map/state-flags/README.md",
+      "sourcePath": "frontend/map/state-flags/README.md",
+      "sha256": "d37291ec707429b3f7a4573f5b2c140eacb69ef878559dff1bb23c6418427fd1",
+      "size": 959
+    },
+    {
+      "path": "frontend/map/state-flags/rheinland-pfalz.svg",
+      "sourcePath": "frontend/map/state-flags/rheinland-pfalz.svg",
+      "sha256": "53677aa454deebb97ba75162a693674d9f62edee669f3bdd548abcfe672516a7",
+      "size": 23513
+    },
+    {
+      "path": "frontend/map/state-flags/saarland.svg",
+      "sourcePath": "frontend/map/state-flags/saarland.svg",
+      "sha256": "72e1467e2a2a6fbc2aea469225a224731d620c3fd66abfe44c5db980bef10ef1",
+      "size": 19131
+    },
+    {
+      "path": "frontend/map/state-flags/sachsen-anhalt.svg",
+      "sourcePath": "frontend/map/state-flags/sachsen-anhalt.svg",
+      "sha256": "3ec698d95ae08c06e8c1319b69147948ca766fe74e081f633953767996cc0916",
+      "size": 34926
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-contact-mini-map.css",
+      "sourcePath": "frontend/map/versorgungs-kompass-contact-mini-map.css",
+      "sha256": "0d49d64526a9fc7217311963b18651124c57959e4f88782ec93bc70b02d80eb8",
+      "size": 911
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-contact-mini-map.html",
+      "sourcePath": "frontend/map/versorgungs-kompass-contact-mini-map.html",
+      "sha256": "029942f2b375774a1a13cb5415b55b4d94420007657e53a93b1a5e101115abed",
+      "size": 641
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-contact-mini-map.js",
+      "sourcePath": "frontend/map/versorgungs-kompass-contact-mini-map.js",
+      "sha256": "284160374ec3ac6eeab5f754d377fb025b070b1548a22b1e6f9deacbc71a8a44",
+      "size": 2826
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map-teaser.css",
+      "sourcePath": "frontend/map/versorgungs-kompass-map-teaser.css",
+      "sha256": "d0d2df0f66af2a54f6b6b4c70211c270f2e2748ffb74bae9ab7581ed243f5df6",
+      "size": 669
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map-teaser.html",
+      "sourcePath": "frontend/map/versorgungs-kompass-map-teaser.html",
+      "sha256": "a55faeac0b1735688e9b51d3945fb69b85b5c05c77510c1213c6006725ca2540",
+      "size": 602
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map-teaser.js",
+      "sourcePath": "frontend/map/versorgungs-kompass-map-teaser.js",
+      "sha256": "945c3e7333641679bdf8e693a600cc4cdb34bb5d96b099eb6df45ad63d98e58b",
+      "size": 1417
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map.css",
+      "sourcePath": "frontend/map/versorgungs-kompass-map.css",
+      "sha256": "1c24669eefe71fe4d2bd90ed204846537ddf16424219a42efc1492d1635eacf8",
+      "size": 115478
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map.html",
+      "sourcePath": "frontend/map/versorgungs-kompass-map.html",
+      "sha256": "32d761dcc5cdcc66f62a5e7419e8f65a7dab28fb1293c01180f2c1b8223da0d2",
+      "size": 9907
+    },
+    {
+      "path": "frontend/map/versorgungs-kompass-map.js",
+      "sourcePath": "frontend/map/versorgungs-kompass-map.js",
+      "sha256": "ed57f2e0dd97648d74a88729d65954d84b2bf52f79b6b2f015920800b5b21fc8",
+      "size": 157571
+    },
+    {
+      "path": "frontend/vendor/leaflet/images/layers-2x.png",
+      "sourcePath": "frontend/vendor/leaflet/images/layers-2x.png",
+      "sha256": "066daca850d8ffbef007af00b06eac0015728dee279c51f3cb6c716df7c42edf",
+      "size": 1259
+    },
+    {
+      "path": "frontend/vendor/leaflet/images/layers.png",
+      "sourcePath": "frontend/vendor/leaflet/images/layers.png",
+      "sha256": "1dbbe9d028e292f36fcba8f8b3a28d5e8932754fc2215b9ac69e4cdecf5107c6",
+      "size": 696
+    },
+    {
+      "path": "frontend/vendor/leaflet/images/marker-icon-2x.png",
+      "sourcePath": "frontend/vendor/leaflet/images/marker-icon-2x.png",
+      "sha256": "00179c4c1ee830d3a108412ae0d294f55776cfeb085c60129a39aa6fc4ae2528",
+      "size": 2464
+    },
+    {
+      "path": "frontend/vendor/leaflet/images/marker-icon.png",
+      "sourcePath": "frontend/vendor/leaflet/images/marker-icon.png",
+      "sha256": "574c3a5cca85f4114085b6841596d62f00d7c892c7b03f28cbfa301deb1dc437",
+      "size": 1466
+    },
+    {
+      "path": "frontend/vendor/leaflet/images/marker-shadow.png",
+      "sourcePath": "frontend/vendor/leaflet/images/marker-shadow.png",
+      "sha256": "264f5c640339f042dd729062cfc04c17f8ea0f29882b538e3848ed8f10edb4da",
+      "size": 618
+    },
+    {
+      "path": "frontend/vendor/leaflet/leaflet.css",
+      "sourcePath": "frontend/vendor/leaflet/leaflet.css",
+      "sha256": "a7837102824184820dfa198d1ebcd109ff6d0ff9a2672a074b9a1b4d147d04c6",
+      "size": 14806
+    },
+    {
+      "path": "frontend/vendor/leaflet/leaflet.js",
+      "sourcePath": "frontend/vendor/leaflet/leaflet.js",
+      "sha256": "db49d009c841f5ca34a888c96511ae936fd9f5533e90d8b2c4d57596f4e5641a",
+      "size": 147552
+    },
+    {
+      "path": "frontend/vendor/mammoth/mammoth.browser.min.js",
+      "sourcePath": "frontend/vendor/mammoth/mammoth.browser.min.js",
+      "sha256": "cc5a15f3f25fbf69c0133be32154d18e9e98a54a1e559f2760e542914f098e1a",
+      "size": 518593
+    },
+    {
+      "path": "frontend/vendor/pdfjs/pdf.min.mjs",
+      "sourcePath": "frontend/vendor/pdfjs/pdf.min.mjs",
+      "sha256": "e0be3863c23c8af2305b16548febd58e7f8874a460253317d7771cddbc1c0f6d",
+      "size": 454669
+    },
+    {
+      "path": "frontend/vendor/pdfjs/pdf.worker.min.mjs",
+      "sourcePath": "frontend/vendor/pdfjs/pdf.worker.min.mjs",
+      "sha256": "0613f41490dd6aaceed7a93fbbd38c85e6d6aa60474b6588c6e7709cfbe18cb3",
+      "size": 1262398
+    },
+    {
+      "path": "frontend/vendor/THIRD_PARTY_ASSETS.json",
+      "sourcePath": "frontend/vendor/THIRD_PARTY_ASSETS.json",
+      "sha256": "2a963a2921395a4df822b9fe62bc95ba7059ea637f096687c2a442586bf9a85c",
+      "size": 2540
+    },
+    {
+      "path": "frontend/vendor/xlsx/xlsx.bundle.js",
+      "sourcePath": "frontend/vendor/xlsx/xlsx.bundle.js",
+      "sha256": "1c7abf2993ff2cd61e508f9268e9acda0098c9796f3925d2ba0d2579072653e2",
+      "size": 425020
+    },
+    {
+      "path": "LICENSE",
+      "sourcePath": "LICENSE",
+      "sha256": "d95e29210f4d4ddb20275d50a224535751d79623876842427872294d54c1bd69",
+      "size": 11342
+    },
+    {
+      "path": "package-lock.json",
+      "sourcePath": "package-lock.json",
+      "sha256": "85e65bfd164b9a8614f47dc8d338801e2b7c0810ac44197a5c08aa34544fff15",
+      "size": 46110
+    },
+    {
+      "path": "package.json",
+      "generated": true,
+      "sha256": "6f1443dc4a080d3dcbfe676daa905667e70fa1274d32f6bd0d5cc3546f4eb40e",
+      "size": 2538
+    },
+    {
+      "path": "playwright.gematik.config.js",
+      "sourcePath": "playwright.gematik.config.js",
+      "sha256": "623bc331418bdd9c00deb5f81235b4ac9fac742492199e99c545bc032c06b829",
+      "size": 987
+    },
+    {
+      "path": "public/brand/asset-manifest.json",
+      "sourcePath": "public/brand/asset-manifest.json",
+      "sha256": "326e581d821e7dba1f1f38b0ad1e60ccaef745323b44cca88eff7db3b122ab12",
+      "size": 6440
+    },
+    {
+      "path": "public/brand/gematik/gematik-logo-standard.png",
+      "sourcePath": "public/brand/gematik/gematik-logo-standard.png",
+      "sha256": "81f822511f5bf03891817a323be10a1d0787fb9bf4e09be333138b80418a1df7",
+      "size": 19966
+    },
+    {
+      "path": "public/brand/mitmachen/flechtwerk-lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/mitmachen/flechtwerk-lockup-horizontal-on-dark.svg",
+      "sha256": "e82cc7a516e15fed4cd8ddb7a502216c4aec8b46541d9547e1d97499025ff16a",
+      "size": 3983
+    },
+    {
+      "path": "public/brand/mitmachen/flechtwerk-lockup-horizontal.svg",
+      "sourcePath": "public/brand/mitmachen/flechtwerk-lockup-horizontal.svg",
+      "sha256": "15b5255f1c65637b2f84c30bddbdbfcf2317f2cee68a101fb7eb55e50f9ff98e",
+      "size": 3962
+    },
+    {
+      "path": "public/brand/mitmachen/flechtwerk-mark-on-dark.svg",
+      "sourcePath": "public/brand/mitmachen/flechtwerk-mark-on-dark.svg",
+      "sha256": "82d52901c16d4527dbedbaa644061dbf83dd5a7deee3b7ef9a371a3c8910b590",
+      "size": 540
+    },
+    {
+      "path": "public/brand/mitmachen/flechtwerk-mark.svg",
+      "sourcePath": "public/brand/mitmachen/flechtwerk-mark.svg",
+      "sha256": "cdda00a264349ffc8146cc42b321025f7896112d161e3f698855b9689b1435c7",
+      "size": 603
+    },
+    {
+      "path": "public/brand/mitmachen/icons/app-icon-180.png",
+      "sourcePath": "public/brand/mitmachen/icons/app-icon-180.png",
+      "sha256": "830f8fd2663c63e7506d6d4980736cdfcfc4220facc001e641e6362af9b5de40",
+      "size": 10822
+    },
+    {
+      "path": "public/brand/mitmachen/icons/app-icon-192.png",
+      "sourcePath": "public/brand/mitmachen/icons/app-icon-192.png",
+      "sha256": "e036aef56b5e72561b74e0cce8951e37fc4cc48d0d53981960b20fccabf4ffe0",
+      "size": 11485
+    },
+    {
+      "path": "public/brand/mitmachen/icons/app-icon-32.png",
+      "sourcePath": "public/brand/mitmachen/icons/app-icon-32.png",
+      "sha256": "52a658d0b0dd5c4edf9055b141657cf041da9c96e8c1bb36e94ab49093f6082b",
+      "size": 2285
+    },
+    {
+      "path": "public/brand/mitmachen/icons/app-icon-512.png",
+      "sourcePath": "public/brand/mitmachen/icons/app-icon-512.png",
+      "sha256": "bb376b799f71f4ec754bd75447f75e7b9fc6aac9e924b9211da1c23ed1757e61",
+      "size": 20721
+    },
+    {
+      "path": "public/brand/mitmachen/icons/app-icon.svg",
+      "sourcePath": "public/brand/mitmachen/icons/app-icon.svg",
+      "sha256": "acd050c551c041996bc7edffdc7eb1d3a75796b6d9b13b2bde4e30b7576dfde7",
+      "size": 740
+    },
+    {
+      "path": "public/brand/mitmachen/lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/mitmachen/lockup-horizontal-on-dark.svg",
+      "sha256": "21d0223e4f3de25c137c210932d5e68a09b84cab4eb5d326d16e30e50998076c",
+      "size": 719
+    },
+    {
+      "path": "public/brand/mitmachen/lockup-horizontal.svg",
+      "sourcePath": "public/brand/mitmachen/lockup-horizontal.svg",
+      "sha256": "7cb418d9f6377a56cebf2b69226e0e504d1c323108e536bcd3080c38874c2aa9",
+      "size": 690
+    },
+    {
+      "path": "public/brand/mitmachen/mark-on-dark.svg",
+      "sourcePath": "public/brand/mitmachen/mark-on-dark.svg",
+      "sha256": "5de231ecf5d829ebd4c6d02d638083fd9ec76a7cd7d1daed3d911d62ec99775f",
+      "size": 468
+    },
+    {
+      "path": "public/brand/mitmachen/mark.svg",
+      "sourcePath": "public/brand/mitmachen/mark.svg",
+      "sha256": "20bc53636510fe45f0483eefa4fa109fb6d2b6ae16a48cc1d83469cf4bb14001",
+      "size": 452
+    },
+    {
+      "path": "public/brand/mitmachen/wordmark-on-dark.svg",
+      "sourcePath": "public/brand/mitmachen/wordmark-on-dark.svg",
+      "sha256": "bbc1aae19fb1fb2f837a9b8a65b3426480888e0210d2acbdb570b86f6d31b322",
+      "size": 514
+    },
+    {
+      "path": "public/brand/mitmachen/wordmark.svg",
+      "sourcePath": "public/brand/mitmachen/wordmark.svg",
+      "sha256": "76c7ad9ee2be7371ebebbe5d48df15b77868db7336c5c01b0eea8d0bde4f89d6",
+      "size": 494
+    },
+    {
+      "path": "public/brand/modules/formate/lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/modules/formate/lockup-horizontal-on-dark.svg",
+      "sha256": "f013b0d119b41ffec969a9270ade873ea1ab9fe9590c3ca8e63490fc5e49d2ea",
+      "size": 1122
+    },
+    {
+      "path": "public/brand/modules/formate/lockup-horizontal.svg",
+      "sourcePath": "public/brand/modules/formate/lockup-horizontal.svg",
+      "sha256": "4c4623e722f1350cca0a9228065121fdcd0204bcc1b26cf6ea87bbe796b55bf3",
+      "size": 1075
+    },
+    {
+      "path": "public/brand/modules/formate/mark-on-dark.svg",
+      "sourcePath": "public/brand/modules/formate/mark-on-dark.svg",
+      "sha256": "bf8c72c1a11dca3aea91fb21d2abefc0b2ffec8bfa5f9c8dc6c88e558118e2a1",
+      "size": 844
+    },
+    {
+      "path": "public/brand/modules/formate/mark.svg",
+      "sourcePath": "public/brand/modules/formate/mark.svg",
+      "sha256": "fe339c51075ddfd5c1a51c9b214cf67e7789e7232d9be9a10fa5366164d79fe2",
+      "size": 810
+    },
+    {
+      "path": "public/brand/modules/formate/wordmark-on-dark.svg",
+      "sourcePath": "public/brand/modules/formate/wordmark-on-dark.svg",
+      "sha256": "e4e503a39e6b608d05fe9d33b0b3186a85daef09a5e067d3d8cd71ff9ee63046",
+      "size": 549
+    },
+    {
+      "path": "public/brand/modules/formate/wordmark.svg",
+      "sourcePath": "public/brand/modules/formate/wordmark.svg",
+      "sha256": "798c16f5af3ffa009a6439a88e6c4e69387dc3bd1d913cdf037123ae06b08648",
+      "size": 522
+    },
+    {
+      "path": "public/brand/modules/hospitation/lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/modules/hospitation/lockup-horizontal-on-dark.svg",
+      "sha256": "678bccb974c54f405967c897611cf958228a555291f4d65adb373058ea797415",
+      "size": 1194
+    },
+    {
+      "path": "public/brand/modules/hospitation/lockup-horizontal.svg",
+      "sourcePath": "public/brand/modules/hospitation/lockup-horizontal.svg",
+      "sha256": "286ff0adbfcc2e0d4e420bc23d393ab67c0e50fd6653054ccd442f0a06983fbc",
+      "size": 1147
+    },
+    {
+      "path": "public/brand/modules/hospitation/mark-on-dark.svg",
+      "sourcePath": "public/brand/modules/hospitation/mark-on-dark.svg",
+      "sha256": "ac1ec9da833f3f40a6e8cdc7a5a820b267279ff121fa04a204f6419becd6817d",
+      "size": 950
+    },
+    {
+      "path": "public/brand/modules/hospitation/mark.svg",
+      "sourcePath": "public/brand/modules/hospitation/mark.svg",
+      "sha256": "ab02afd398ae0854fe72bc011d69e82edee418234b50f78eaaa6b81abf3a97ff",
+      "size": 918
+    },
+    {
+      "path": "public/brand/modules/hospitation/wordmark-on-dark.svg",
+      "sourcePath": "public/brand/modules/hospitation/wordmark-on-dark.svg",
+      "sha256": "716bacf80ddd71f8adcb091e2bd4e8d1fd5de5680c7934b2c8a64b0982216d88",
+      "size": 583
+    },
+    {
+      "path": "public/brand/modules/hospitation/wordmark.svg",
+      "sourcePath": "public/brand/modules/hospitation/wordmark.svg",
+      "sha256": "453468a48d7a20d29a15e2090e98b0f3fe8f8162c108d998df6eedb14d5d4ad8",
+      "size": 556
+    },
+    {
+      "path": "public/brand/modules/stakeholder/lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/modules/stakeholder/lockup-horizontal-on-dark.svg",
+      "sha256": "b0b93187e72f7ae88207f988f5d806c2f7f6ccf602d97188469105b973f9959c",
+      "size": 1183
+    },
+    {
+      "path": "public/brand/modules/stakeholder/lockup-horizontal.svg",
+      "sourcePath": "public/brand/modules/stakeholder/lockup-horizontal.svg",
+      "sha256": "b3cf9638464d00611a2afb783dfb988f1ec09def096359399150496b7f9527e0",
+      "size": 1136
+    },
+    {
+      "path": "public/brand/modules/stakeholder/mark-on-dark.svg",
+      "sourcePath": "public/brand/modules/stakeholder/mark-on-dark.svg",
+      "sha256": "6ad4b0dc67af74a6be1d1d5c412e1b2039dd014e2fef8dcc0f16f44adadb4001",
+      "size": 940
+    },
+    {
+      "path": "public/brand/modules/stakeholder/mark.svg",
+      "sourcePath": "public/brand/modules/stakeholder/mark.svg",
+      "sha256": "738dc625ba940f9ff19752d785310998b7354092b7cc698274bebeb8e9187e42",
+      "size": 908
+    },
+    {
+      "path": "public/brand/modules/stakeholder/wordmark-on-dark.svg",
+      "sourcePath": "public/brand/modules/stakeholder/wordmark-on-dark.svg",
+      "sha256": "d89ddc4a49910b928072915bd5d8f8bc58b24552eeca9961823cce6511123ddd",
+      "size": 580
+    },
+    {
+      "path": "public/brand/modules/stakeholder/wordmark.svg",
+      "sourcePath": "public/brand/modules/stakeholder/wordmark.svg",
+      "sha256": "38b35a56c63f1995799e1a6c7a2ef79b90a38b413aeb48010744d1390f3b1acc",
+      "size": 553
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/icons/app-icon-180.png",
+      "sourcePath": "public/brand/versorgungs-kompass/icons/app-icon-180.png",
+      "sha256": "61bbc1caea53e5851ea6b2c80c18e80406f51333432f886f61cffd926e5b3d15",
+      "size": 1331
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/icons/app-icon-192.png",
+      "sourcePath": "public/brand/versorgungs-kompass/icons/app-icon-192.png",
+      "sha256": "89e1d40e50b7e6ad1da9e268ae54d4e4bb826d0b195f01ae4fc1b58eefff43c4",
+      "size": 1403
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/icons/app-icon-32.png",
+      "sourcePath": "public/brand/versorgungs-kompass/icons/app-icon-32.png",
+      "sha256": "4268b0e3a3915ecb23c283b56094a5e41edfe880eee18f17fca646a19ddf2671",
+      "size": 359
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/icons/app-icon-512.png",
+      "sourcePath": "public/brand/versorgungs-kompass/icons/app-icon-512.png",
+      "sha256": "d9380539e6e1847f4494b03ccfc10d162fb671d4333e04748f925864487e4f5d",
+      "size": 3609
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/lockup-horizontal-on-dark.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/lockup-horizontal-on-dark.svg",
+      "sha256": "07bb00b885f88e4c3d2b0c47593c707206f434d2e47a98b79f6103922e3e901c",
+      "size": 822
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/lockup-horizontal.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/lockup-horizontal.svg",
+      "sha256": "bfe1523d77ca7923620de5262bf90c7cbe384a38392207a2fba2deeb9d511e47",
+      "size": 807
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/mark-on-dark.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/mark-on-dark.svg",
+      "sha256": "0d44d04fae06efc224b58c6be5cc7abb7218abfedd5c6a7f729babd7848628dc",
+      "size": 606
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/mark.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/mark.svg",
+      "sha256": "378ef7d40190146cf96a5e506bd94df5b86e3087f07ea48ef2c413f97717e231",
+      "size": 575
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/wordmark-on-dark.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/wordmark-on-dark.svg",
+      "sha256": "8c6ca47f892f8d482fd0a306c915d58465d0cd473077d166d818cb72f810d99a",
+      "size": 455
+    },
+    {
+      "path": "public/brand/versorgungs-kompass/wordmark.svg",
+      "sourcePath": "public/brand/versorgungs-kompass/wordmark.svg",
+      "sha256": "ea7f89c4afe625268496f4655bc18cb070b7f048a4de8eff151f65c80ae87aec",
+      "size": 439
+    },
+    {
+      "path": "public/hospitation/hospitations-framework-ausfuellbar.pdf",
+      "sourcePath": "public/hospitation/hospitations-framework-ausfuellbar.pdf",
+      "sha256": "d269c59cafed14ca6aa30bf5e0893a995ec2055232445c83b332a24691a2bbe7",
+      "size": 86378
+    },
+    {
+      "path": "public/hospitation/mitmachen-hospitations-framework.docx",
+      "sourcePath": "public/hospitation/mitmachen-hospitations-framework.docx",
+      "sha256": "1982a7bdcb21dea69b5f1404838a904c1a13af34be55ae06d3de21123b6e18e2",
+      "size": 54935
+    },
+    {
+      "path": "public/hospitation/mitmachen-hospitations-framework.pdf",
+      "sourcePath": "public/hospitation/mitmachen-hospitations-framework.pdf",
+      "sha256": "807e10acfcd4a085d9815244cbea92d954acf0294fb1028832c6e40507b4a1e7",
+      "size": 275308
+    },
+    {
+      "path": "public/manifest.webmanifest",
+      "sourcePath": "public/manifest.webmanifest",
+      "sha256": "69392b5ace017048f5ca2ca3693926198afd4af0402116f91de434328d5ec4b2",
+      "size": 645
+    },
+    {
+      "path": "README.md",
+      "sourcePath": "README.md",
+      "sha256": "2190e82ef4d483a6cc50cca45685112ff81de5029975ce70e12612b4008f1300",
+      "size": 3167
+    },
+    {
+      "path": "scripts/audit_api_gateway.mjs",
+      "sourcePath": "scripts/audit_api_gateway.mjs",
+      "sha256": "58af1c726c343e648cebf7badf9275e56a5843381c598a5468175a2ab959bb68",
+      "size": 12326
+    },
+    {
+      "path": "scripts/audit_gematik_core_assets.mjs",
+      "sourcePath": "scripts/audit_gematik_core_assets.mjs",
+      "sha256": "db1d1149c14988e1ebde648a6cfc3798edcd836264d5e8366c12b82f27183e4e",
+      "size": 3785
+    },
+    {
+      "path": "scripts/audit_target_assets.mjs",
+      "generated": true,
+      "sha256": "daba0e94abe1e3ebde426c46e92885a965fb36704ddd974894c000f0e48de5e9",
+      "size": 42
+    },
+    {
+      "path": "scripts/build_gematik_frontend.mjs",
+      "sourcePath": "scripts/build_gematik_frontend.mjs",
+      "sha256": "d3a73b41b3d5d7c3651315a2be278af83f89a688a006511bf75e45af6ff23a35",
+      "size": 8114
+    },
+    {
+      "path": "scripts/build_static_frontend.sh",
+      "generated": true,
+      "sha256": "1627662ef2e1147a167c0aa8f2152149e61eeabd3422c769ee7d91e860f9375f",
+      "size": 440
+    },
+    {
+      "path": "scripts/check_gematik_core_readiness.mjs",
+      "sourcePath": "scripts/check_gematik_core_readiness.mjs",
+      "sha256": "3ab0ea20b0cafa428e42ef9a28f469dd64435d156eb50f0907770cfc08f80532",
+      "size": 4235
+    },
+    {
+      "path": "scripts/check_markdown_language.mjs",
+      "sourcePath": "scripts/check_markdown_language.mjs",
+      "sha256": "bfa76076fc200390505af4485ff9419034384f7b8c4f7d2f041818d4e24f80c0",
+      "size": 8098
+    },
+    {
+      "path": "scripts/generate_frontend_sbom.mjs",
+      "sourcePath": "scripts/generate_frontend_sbom.mjs",
+      "sha256": "fb8599ec7ddd32ea516c6a854682b5f43086b095b7727ae83049c4dc4b412d05",
+      "size": 8819
+    },
+    {
+      "path": "scripts/generate_security_evidence.mjs",
+      "sourcePath": "scripts/generate_security_evidence.mjs",
+      "sha256": "5a19dd0fa6653138968ea2bfa80a4bb334c06624217078360f09c8194722f109",
+      "size": 30768
+    },
+    {
+      "path": "scripts/hash_gematik_core_database.mjs",
+      "sourcePath": "scripts/hash_gematik_core_database.mjs",
+      "sha256": "7c1bb52beaa2c72b697f2a347583032513c548c2ec03e12a8ee038035f8f732c",
+      "size": 1141
+    },
+    {
+      "path": "scripts/html_metadata_tags.cjs",
+      "sourcePath": "scripts/html_metadata_tags.cjs",
+      "sha256": "436c3873a71137a0a5b5d701ced7f3ec12b4f46a5014a78aa59685b4b784c6ef",
+      "size": 3254
+    },
+    {
+      "path": "scripts/lib/artifact-tree.mjs",
+      "sourcePath": "scripts/lib/artifact-tree.mjs",
+      "sha256": "c06695ee381f34bee4800e7b664e49b51bc3150c2f997d66b78bf8acbf141b50",
+      "size": 1231
+    },
+    {
+      "path": "scripts/lib/release_policy.mjs",
+      "sourcePath": "scripts/lib/release_policy.mjs",
+      "sha256": "7dac923a3853a07797f20575a025a10e8b96d7835bec292ef1577dae1b0a9b93",
+      "size": 20112
+    },
+    {
+      "path": "scripts/normalize_repository_url.mjs",
+      "sourcePath": "scripts/normalize_repository_url.mjs",
+      "sha256": "dc0f12ca0958a27d03e45349a9b5baa9a6b708e338284d3c195ce1fb829415c4",
+      "size": 2440
+    },
+    {
+      "path": "scripts/package_source_handoff.mjs",
+      "sourcePath": "scripts/package_source_handoff.mjs",
+      "sha256": "c88cae9ea78929b30b568b9d2e028f557e638baba5795a7c2193aefed226f0f5",
+      "size": 17808
+    },
+    {
+      "path": "scripts/preflight_target_deployment.mjs",
+      "sourcePath": "scripts/preflight_target_deployment.mjs",
+      "sha256": "b60a10ea1e62b0048fcf2a7892631ecad11ff7755fea85eb69c25a344047fc25",
+      "size": 13425
+    },
+    {
+      "path": "scripts/prepare_target_frontend_config.mjs",
+      "sourcePath": "scripts/prepare_target_frontend_config.mjs",
+      "sha256": "5e1bd35ad10c002c6172109e1434ffa728dc3fac69bef047418324e7f63c5c29",
+      "size": 8585
+    },
+    {
+      "path": "scripts/print_product_version.mjs",
+      "sourcePath": "scripts/print_product_version.mjs",
+      "sha256": "b55f2d9139da7c441b151f177eab3c6ab9d3c8921ca2ce7b0973beb0f74ab3ea",
+      "size": 305
+    },
+    {
+      "path": "scripts/serve_gematik_preview.mjs",
+      "sourcePath": "scripts/serve_gematik_preview.mjs",
+      "sha256": "8ea0901ff65b6585ea661801300de09a79992c82addfb93a8662b8bd43c6bd63",
+      "size": 1989
+    },
+    {
+      "path": "scripts/test_deployment_separation.mjs",
+      "sourcePath": "scripts/test_deployment_separation.mjs",
+      "sha256": "2b256987dcf7536dfc6babbd2baed3e41eacaba3c44122cd480707b07518d06e",
+      "size": 60972
+    },
+    {
+      "path": "scripts/test_duplicate_identity.mjs",
+      "sourcePath": "scripts/test_duplicate_identity.mjs",
+      "sha256": "2b1989d33829f782256b3ec20027cf7a8d042b8d8d4b0172bf44d25db75fd176",
+      "size": 4784
+    },
+    {
+      "path": "scripts/test_frontend_sbom.mjs",
+      "sourcePath": "scripts/test_frontend_sbom.mjs",
+      "sha256": "2800d485a128783e08f4e453f7f37c46957c921976c4fa27517496aab148d742",
+      "size": 5012
+    },
+    {
+      "path": "scripts/test_gematik_core_api_container.mjs",
+      "sourcePath": "scripts/test_gematik_core_api_container.mjs",
+      "sha256": "f58b874a35d39b671ff4332eafb5257e65e45608c9e9986d68eafdf296bc784d",
+      "size": 2820
+    },
+    {
+      "path": "scripts/test_gematik_core_api.mjs",
+      "sourcePath": "scripts/test_gematik_core_api.mjs",
+      "sha256": "261d7f82c9112dc9b31fbe685c6e58cbf4938e77332333aea97ec3645d1287bf",
+      "size": 11955
+    },
+    {
+      "path": "scripts/test_gematik_core_build.mjs",
+      "sourcePath": "scripts/test_gematik_core_build.mjs",
+      "sha256": "a6efa43f7c2ea46811bffe457e0af3c3bdb310670cd7c6c11fdcecad48934650",
+      "size": 2142
+    },
+    {
+      "path": "scripts/test_hospitation_document_export.mjs",
+      "sourcePath": "scripts/test_hospitation_document_export.mjs",
+      "sha256": "2dd8964479897a398c3576f7472775762682ca0ead066cbc682b8138b98d975b",
+      "size": 104588
+    },
+    {
+      "path": "scripts/test_hospitation_import_contract.mjs",
+      "sourcePath": "scripts/test_hospitation_import_contract.mjs",
+      "sha256": "6304e875000b828d968c145b92d6e86a7378a93b3ef8e80ec4bd63194cab66a0",
+      "size": 31228
+    },
+    {
+      "path": "scripts/test_security_evidence.mjs",
+      "sourcePath": "scripts/test_security_evidence.mjs",
+      "sha256": "f51ce7409c89745b5cfc425202385c81ff51ed0a1e87036ba6808f7fd612e191",
+      "size": 16326
+    },
+    {
+      "path": "scripts/test_target_frontend_config.mjs",
+      "sourcePath": "scripts/test_target_frontend_config.mjs",
+      "sha256": "4ddd648a7d1cbdb8e3e85ada93f9ca7d416c758f5243d3c84d340098ced59668",
+      "size": 7254
+    },
+    {
+      "path": "scripts/test_target_release_source.mjs",
+      "sourcePath": "scripts/test_target_release_source.mjs",
+      "sha256": "eb0cd44562c7e4af59325c7af1f7ccdf97805c62efa47fc774d3d01f58f3ec46",
+      "size": 22056
+    },
+    {
+      "path": "scripts/verify_release_tag.mjs",
+      "sourcePath": "scripts/verify_release_tag.mjs",
+      "sha256": "bbdc7bbf8effc77ab7e4016ff54fb6b5fd4b2805814893874f86664ffd185ad6",
+      "size": 8858
+    },
+    {
+      "path": "scripts/verify_source_handoff.mjs",
+      "sourcePath": "scripts/verify_source_handoff.mjs",
+      "sha256": "9cdfcda468c43f0d31276bded6d9bc93ce3cdc3f0fbc66a80b8697870127c34e",
+      "size": 20105
+    },
+    {
+      "path": "scripts/verify_target_release_source.mjs",
+      "sourcePath": "scripts/verify_target_release_source.mjs",
+      "sha256": "159ef75e8e6e27319dcabc33fac1745ba395e12b5c686189409da9ac390d543e",
+      "size": 12322
+    },
+    {
+      "path": "SECURITY.md",
+      "sourcePath": "SECURITY.md",
+      "sha256": "e63b5ba22ef80aad517895eee99aeb5187d9c209a16077f19d3c14b25918c5ff",
+      "size": 6523
+    },
+    {
+      "path": "tests/fixtures/ui-regression-data.js",
+      "sourcePath": "tests/fixtures/ui-regression-data.js",
+      "sha256": "2f0da564c218e226c4c8a1a6be3003f9973c4c892c0b221ba8ec2c533efa3d88",
+      "size": 65116
+    },
+    {
+      "path": "tests/gematik-core-ui.spec.js",
+      "sourcePath": "tests/gematik-core-ui.spec.js",
+      "sha256": "9633614532eba0d4d3c09a40025ebd3a8b16ab091d6aae659b30dcd767fbb79e",
+      "size": 5826
+    },
+    {
+      "path": "tests/helpers/app-test-session.js",
+      "sourcePath": "tests/helpers/app-test-session.js",
+      "sha256": "262678f7a09d814e20c5ff4c8374f23b8c5fd4cc4b58fe213fdbd6bc2b84250e",
+      "size": 3522
+    },
+    {
+      "path": "tests/helpers/protected-backend-fixture.js",
+      "sourcePath": "tests/helpers/protected-backend-fixture.js",
+      "sha256": "d366aff0e34013c60add0a541de9d66691c383ab8f9bca82d8ed99110670baed",
+      "size": 67123
+    }
+  ]
+}

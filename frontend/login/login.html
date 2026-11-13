@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login | Versorgungs-Kompass</title>
+    <meta name="theme-color" content="#155fe4" />
+    <meta name="apple-mobile-web-app-title" content="Kompass" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <link rel="manifest" href="../../public/manifest.webmanifest" />
+    <link rel="apple-touch-icon" sizes="180x180" href="../../public/brand/versorgungs-kompass/icons/app-icon-180.png" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../../public/brand/versorgungs-kompass/icons/app-icon-32.png" />
+    <link rel="icon" type="image/svg+xml" href="../../public/brand/versorgungs-kompass/mark.svg" />
+    <script src="../data/runtime-config.js"></script>
+    <script src="../app/versorgungs-kompass-routes.js"></script>
+    <script src="./auth-config.js"></script>
+    <script src="./auth-guard.js"></script>
+    <link rel="stylesheet" href="./login.css" />
+  </head>
+  <body>
+    <main class="login-shell">
+      <div class="brand">
+        <img class="brand-mark" src="../../public/brand/versorgungs-kompass/mark.svg" alt="" aria-hidden="true" />
+        <div class="brand-copy">
+          <span class="brand-kicker">#Mitmachen</span>
+          <strong id="login-app-name">Versorgungs-Kompass</strong>
+          <p>Plattform für Kontakte, Hospitationen, Formate und gemeinsames Versorgungswissen.</p>
+        </div>
+      </div>
+
+      <div class="login-stack">
+        <section class="teaser-card" aria-label="Karten-Vorschau">
+          <iframe
+            class="teaser-frame"
+            title="Mini-Vorschau des Karten-Modus"
+            src="../map/versorgungs-kompass-map-teaser.html"
+            loading="lazy"
+            tabindex="-1"
+            sandbox="allow-scripts"
+            referrerpolicy="no-referrer"
+          ></iframe>
+        </section>
+
+        <section class="login-card" id="login-card" aria-labelledby="login-app-name">
+          <p id="login-copy">Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.</p>
+          <button class="login-button" id="external-login-submit" type="button" hidden>Erneut anmelden</button>
+        </section>
+      </div>
+    </main>
+
+    <script src="./auth-login.js"></script>
+  </body>
+</html>

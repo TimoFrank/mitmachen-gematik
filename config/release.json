@@ -1,0 +1,125 @@
+{
+  "$schema": "./release.schema.json",
+  "schemaVersion": 2,
+  "productVersion": "0.27.1",
+  "baselineVersion": "0.0.0",
+  "baselineRef": "9143ae6b53f623e808ffb3fab72e812ec14bccee",
+  "defaultBump": "minor",
+  "policy": {
+    "policyVersion": 1,
+    "effectiveFromVersion": "0.23.0",
+    "tag": {
+      "format": "vX.Y.Z",
+      "signed": true,
+      "annotated": true,
+      "verifyBeforePublish": true,
+      "immutable": true
+    },
+    "releaseCandidate": {
+      "untilVersion": "1.0.0",
+      "preferredLabel": "Release Candidate",
+      "allowedAlternateLabel": "Proof of Concept",
+      "githubPrerelease": true,
+      "githubLatest": false,
+      "titlePattern": "{version}-0 Release Candidate",
+      "hotfixTitlePattern": "{version} Release Candidate"
+    },
+    "stable": {
+      "firstVersion": "1.0.0",
+      "automatic": false,
+      "requiresExplicitAuthorization": true,
+      "requiresDeploymentProfile": "target",
+      "requiresVerifiedDeployment": true,
+      "tagBeforeTargetBuild": true,
+      "githubReleaseAfterVerifiedDeployment": true,
+      "githubPrerelease": false,
+      "githubLatest": true,
+      "compactDisplayWhenPatchZero": true,
+      "titlePattern": "Versorgungs-Kompass {displayVersion}: {theme}",
+      "hotfixTitlePattern": "Versorgungs-Kompass {displayVersion} — Hotfix"
+    },
+    "cadence": {
+      "weekly": {
+        "weekday": "friday",
+        "time": "09:17",
+        "timeZone": "Europe/Berlin",
+        "bump": "minor",
+        "skipWithoutChanges": true
+      },
+      "hotfix": {
+        "bump": "patch",
+        "scheduled": false
+      }
+    },
+    "documentation": {
+      "weekly": {
+        "theme": "required",
+        "releaseNotes": "full",
+        "changelog": "themed-release-section",
+        "inAppHistory": true
+      },
+      "hotfix": {
+        "theme": "forbidden",
+        "releaseNotes": "compact",
+        "changelog": "compact-item-under-current-minor",
+        "inAppHistory": false,
+        "carryIntoNextWeekly": true
+      }
+    },
+    "deliveryChannels": [
+      {
+        "id": "pages-demo",
+        "deploymentProfile": "pages-demo",
+        "authMode": "anonymous-demo",
+        "buildAuthority": "github-actions",
+        "releaseTrigger": "product-release",
+        "crossChannelPromotion": false
+      },
+      {
+        "id": "private-gke",
+        "deploymentProfile": "pre-gematik",
+        "authMode": "iap",
+        "buildAuthority": "github-actions-gke",
+        "releaseTrigger": "manual-approval",
+        "crossChannelPromotion": false
+      },
+      {
+        "id": "gematik-target",
+        "deploymentProfile": "target",
+        "authMode": "oidc",
+        "buildAuthority": "software-factory",
+        "releaseTrigger": "controlled-release",
+        "crossChannelPromotion": false
+      }
+    ],
+    "handoff": {
+      "source": "signed-git-tag",
+      "destination": "gitlab-software-factory",
+      "targetBuild": "fresh-from-tag",
+      "requiredProof": [
+        "tag-object-sha",
+        "commit-sha",
+        "signer-fingerprint",
+        "tag-signature-verification",
+        "target-artifact-digests"
+      ],
+      "forbiddenInputs": [
+        "workspace-archive",
+        "pages-artifacts",
+        "private-gke-artifacts",
+        "personal-values",
+        "secrets",
+        "data",
+        "oidc-subjects"
+      ]
+    },
+    "legacyTags": [
+      "v0.21.0",
+      "v0.22.0",
+      "poc-v0.1.0-rc.2",
+      "poc-v0.1.0-rc.3",
+      "poc-v0.1.0-rc.4",
+      "poc-v0.1.0-rc.5"
+    ]
+  }
+}
