@@ -11,7 +11,7 @@
     "originalExportManifest": "dokumentation/quellen/ursprungsmanifest.json",
     "originalExportManifestSha256": "0d407a57e6d8af3e593c4ed7c78e9bb39cb97a8c459cbd44201204c94cc76d48"
   },
-  "inventoryDigest": "sha256:0f1235fc17dca05759c53f61e7fc590396187b418ee488af6d0bbacf602bc6aa",
+  "inventoryDigest": "sha256:d091058ebb3be6c68bb68ed548100d13225ec19e8aec9433a51811dccbdb5d66",
   "files": [
     {
       "path": ".dockerignore",
@@ -55,8 +55,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "c88b0e48dfa7d9f53a26d9bbddd0e44bfc3eb4a925d1c52dc3d3750726777786",
-      "size": 1771
+      "sha256": "341b224e6434127c72d38373318797146ca20dc72c04f26783ec977722ad0281",
+      "size": 1864
     },
     {
       "path": "SECURITY.md",
@@ -295,8 +295,8 @@
     },
     {
       "path": "dokumentation/gematik/ANWENDUNG.md",
-      "sha256": "c781892304b84e6d16848c5ef1d9d493ea79d3b077e3a569331c2523d3595ef5",
-      "size": 2274
+      "sha256": "072ad500a20171bfb8e738691c2bc510d9c00945f54ca6b077f5eef61557a3af",
+      "size": 2282
     },
     {
       "path": "dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md",
@@ -319,9 +319,19 @@
       "size": 3060
     },
     {
+      "path": "dokumentation/nutzung/Nutzerhandbuch.docx",
+      "sha256": "d2880941534a92564772f9e7946c233f354692fccbd84b8204c5fc1630824bf4",
+      "size": 2446353
+    },
+    {
       "path": "dokumentation/nutzung/Nutzerhandbuch.pdf",
-      "sha256": "23c8f679166cd6b1f75c8e5dc39128c552ec0fc3ef6082ff5a20688da25c43aa",
-      "size": 1681815
+      "sha256": "5a1b9535d4aaf1d7cb998e869c7294f4cc82494bf28eb4e5cf6aa81b81fa9eeb",
+      "size": 2118586
+    },
+    {
+      "path": "dokumentation/nutzung/README.md",
+      "sha256": "2eb809a697b56830c1d8acec399c885678873b6511998ec35f075115e3d00b10",
+      "size": 525
     },
     {
       "path": "dokumentation/quellen/ursprungsmanifest.json",

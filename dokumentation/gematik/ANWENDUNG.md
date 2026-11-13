@@ -2,7 +2,7 @@
 
 Stand: 13. November 2026
 
-Die Anwendung unterstützt die interne Arbeit mit Versorgungseinrichtungen und Hospitationen. Sie verbindet den Versorgungs-Kompass und den Hospitations-Kompass auf einer gemeinsamen Datengrundlage. Die Bedienabläufe stehen im [Nutzerhandbuch](../nutzung/Nutzerhandbuch.pdf).
+Die Anwendung unterstützt die interne Arbeit mit Versorgungseinrichtungen und Hospitationen. Sie verbindet den Versorgungs-Kompass und den Hospitations-Kompass auf einer gemeinsamen Datengrundlage. Die Bedienabläufe stehen im [Nutzerhandbuch](../nutzung/README.md) als PDF und Word.
 
 ![Aufbau der Anwendung](../assets/anwendung.svg)
 

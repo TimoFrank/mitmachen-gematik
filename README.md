@@ -2,7 +2,7 @@
 
 Versorgungsarbeit und Hospitationen gemeinsam organisieren. Der Versorgungs-Kompass verbindet Kontakte und Organisationen mit dem regionalen Versorgungsgeschehen. Der Hospitations-Kompass unterstützt Vorbereitung, Dokumentation und Auswertung von Hospitationen. Beide nutzen gemeinsame Profile und Rollen.
 
-**[Nutzerhandbuch als PDF](dokumentation/nutzung/Nutzerhandbuch.pdf)**. Die bebilderte Kurzanleitung erklärt Karte, Kontakte, Organisationen und Hospitationen.
+**[Nutzerhandbuch als PDF](dokumentation/nutzung/Nutzerhandbuch.pdf)** und [bearbeitbare Word-Fassung](dokumentation/nutzung/Nutzerhandbuch.docx). Die bebilderte Kurzanleitung mit zwölf Seiten erklärt Karte, Kontakte, Organisationen und Hospitationen.
 
 Zielplattform ist **GKE/Kubernetes mit OIDC**. Diese Dokumentation führt vom fachlichen Einstieg bis zur Vorbereitung des Betriebs.
 
