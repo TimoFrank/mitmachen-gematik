@@ -2,6 +2,8 @@
 
 Versorgungsarbeit und Hospitationen gemeinsam organisieren. Der Versorgungs-Kompass verbindet Kontakte und Organisationen mit dem regionalen Versorgungsgeschehen. Der Hospitations-Kompass unterstützt Vorbereitung, Dokumentation und Auswertung von Hospitationen. Beide nutzen gemeinsame Profile und Rollen.
 
+**[Nutzerhandbuch als PDF](dokumentation/nutzung/Nutzerhandbuch.pdf)**. Die bebilderte Kurzanleitung erklärt Karte, Kontakte, Organisationen und Hospitationen.
+
 Zielplattform ist **GKE/Kubernetes mit OIDC**. Diese Dokumentation führt vom fachlichen Einstieg bis zur Vorbereitung des Betriebs.
 
 ## Die sechs Anleitungen
@@ -10,7 +12,7 @@ Zielplattform ist **GKE/Kubernetes mit OIDC**. Diese Dokumentation führt vom fa
 | --- | --- |
 | [Anwendung](dokumentation/gematik/ANWENDUNG.md) | Die zwei Kompasse und ihre gemeinsame Grundlage |
 | [Architektur und Daten](dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md) | Komponenten, Anmeldung und Datenfluss |
-| [Datenschutz und Compliance](dokumentation/gematik/DATENSCHUTZ_UND_COMPLIANCE.md) | Datenklassen und offene Entscheidungen |
+| [Datenschutz und Compliance](dokumentation/gematik/DATENSCHUTZ_UND_COMPLIANCE.md) | Datennutzung und laufender interner Compliance-Check |
 | [Entwicklung und QA](dokumentation/gematik/ENTWICKLUNG_UND_QA.md) | Lokal bauen und synthetisch prüfen |
 | [Übernahme und Updates](dokumentation/gematik/RELEASE_UND_UPDATES.md) | Quellstand übernehmen und Änderungen nachführen |
 | [Betrieb](dokumentation/betrieb-und-deployment/BETRIEB_GEMATIK.md) | Bereitstellung, Abnahme und Wartung |
