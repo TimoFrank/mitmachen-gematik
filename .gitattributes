@@ -1,0 +1,7 @@
+# Herkunfts- und Vendorhashes benötigen unveränderte Dateibytes.
+* -text
+frontend/vendor/** -whitespace
+*.pdf binary
+*.docx binary
+*.png binary
+*.webp binary

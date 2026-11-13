@@ -1,0 +1,85 @@
+(function () {
+  const auth = window.VKAuth;
+  const runtimeConfig = window.VERSORGUNGS_COMPASS_CONFIG || {};
+
+  if (!auth) return;
+
+  function isAllowedAppReturnPath(pathname) {
+    if (window.VKAppRoutes?.isApplicationPath?.(pathname)) return true;
+    return /\/(?:app\/versorgungs-kompass\.html|app\/hospitation\/index\.html|map\/versorgungs-kompass-map\.html|versorgungs-kompass\.html|hospitation\/index\.html|versorgungs-kompass-map\.html)$/.test(String(pathname || ""));
+  }
+
+  function getReturnUrl() {
+    const params = new URLSearchParams(window.location.search);
+    const returnTarget = params.get("return");
+    if (!returnTarget) return auth.getDefaultUrl();
+    try {
+      const candidate = new URL(returnTarget, window.location.href);
+      if (candidate.origin !== window.location.origin || !isAllowedAppReturnPath(candidate.pathname)) {
+        return auth.getDefaultUrl();
+      }
+      return candidate.href;
+    } catch {
+      return auth.getDefaultUrl();
+    }
+  }
+
+  function isExplicitSignOutReturn() {
+    return window.location.hash === "#signed-out";
+  }
+
+  function usesExternalIdentityProvider() {
+    return ["iap", "oidc"].includes(runtimeConfig.authMode) && runtimeConfig.dataMode === "api";
+  }
+
+  function usesIapExternalIdentities() {
+    return runtimeConfig.authMode === "iap" && runtimeConfig.iapIdentityMode === "external";
+  }
+
+  window.addEventListener("DOMContentLoaded", function () {
+    const copy = document.getElementById("login-copy");
+    const externalLoginButton = document.getElementById("external-login-submit");
+    if (runtimeConfig.identityProvider === "google-hosting") {
+      const finish = () => window.location.replace("/anmelden");
+      if (isExplicitSignOutReturn()) {
+        fetch("/api/auth/logout", {
+          method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error",
+          headers: { "content-type": "application/json" }, body: "{}"
+        }).then((response) => {
+          if (!response.ok) throw new Error("Abmeldung fehlgeschlagen.");
+          finish();
+        }).catch(() => {
+          if (copy) copy.textContent = "Die Abmeldung konnte nicht abgeschlossen werden. Bitte lade die Seite erneut.";
+        });
+      } else finish();
+      return;
+    }
+
+    if (!usesExternalIdentityProvider()) {
+      if (copy) copy.textContent = "Die Anwendung ist fail-closed: Ohne konfigurierte OIDC- oder IAP-Anmeldung ist kein Zugriff möglich.";
+      return;
+    }
+
+    if (isExplicitSignOutReturn()) {
+      if (copy) {
+        copy.textContent = usesIapExternalIdentities()
+          ? "Du bist aus dem Versorgungs-Kompass abgemeldet. Du kannst dich erneut mit Google oder deinem freigeschalteten E-Mail-Testkonto anmelden."
+          : "Du bist aus dem Versorgungs-Kompass abgemeldet. Das Konto des Identity Providers bleibt gegebenenfalls im Browser angemeldet.";
+      }
+      if (externalLoginButton) {
+        externalLoginButton.hidden = false;
+        externalLoginButton.addEventListener("click", function () {
+          window.location.replace(getReturnUrl());
+        });
+      }
+      return;
+    }
+
+    if (copy) {
+      copy.textContent = usesIapExternalIdentities()
+        ? "Die geschützte Anmeldung bietet Google sowie freigeschaltete E-Mail-Testkonten. Eine Selbstregistrierung ist nicht möglich."
+        : "Die Anmeldung erfolgt über den organisationsweiten SSO-Zugang.";
+    }
+    window.location.replace(getReturnUrl());
+  });
+})();

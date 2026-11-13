@@ -1,0 +1,28 @@
+{
+  "$schema": "../deployment-profile.schema.json",
+  "id": "target",
+  "purpose": "Befristeter gematik-interner Nutzungspilot über die kontrollierte Software Factory",
+  "status": "planned",
+  "buildProfile": "target",
+  "sourceRoots": ["frontend", "public", "api"],
+  "artifactPath": "dist/target",
+  "infrastructureRoot": "deploy",
+  "githubEnvironment": null,
+  "delivery": {
+    "kind": "software-factory",
+    "entrypoint": "deploy/jenkins/Jenkinsfile.gematik",
+    "trigger": "controlled-release"
+  },
+  "route": null,
+  "dataMode": "api",
+  "dataPolicy": "approved-classes-only",
+  "authModes": ["oidc"],
+  "forbiddenInputs": [
+    "dist/pages",
+    "public/pages-demo/politik-offline.html",
+    "frontend/demo",
+    "frontend/identity-portal",
+    "frontend/data/public-politics-directory.js",
+    "frontend/data/demo-data.js"
+  ]
+}

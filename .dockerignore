@@ -1,0 +1,12 @@
+**
+!package.json
+!package-lock.json
+!api/
+!api/*.mjs
+!api/package.target.json
+!api/package.target-lock.json
+!api/Dockerfile
+!frontend/
+!frontend/data/
+!frontend/data/activity-model.js
+!frontend/data/sector-registry.js

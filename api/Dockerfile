@@ -1,0 +1,39 @@
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2 AS target-build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY api/ ./api/
+COPY frontend/data/activity-model.js frontend/data/sector-registry.js ./frontend/data/
+RUN node api/build-target.mjs
+
+FROM node:22-alpine@sha256:16e22a550f3863206a3f701448c45f7912c6896a62de43add43bb9c86130c3e2
+WORKDIR /app
+COPY --from=target-build /app/dist/gematik-core-api/package.json /app/dist/gematik-core-api/package-lock.json ./
+RUN npm ci --omit=dev --ignore-scripts \
+    && npm cache clean --force \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v1.22.22 \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg
+COPY --from=target-build /app/dist/gematik-core-api/server.mjs ./server.mjs
+COPY --from=target-build /app/dist/gematik-core-api/build-manifest.json ./build-manifest.json
+
+ARG PRODUCT_VERSION
+ARG SOURCE_REVISION
+ARG SOURCE_URL
+RUN printf '%s' "$PRODUCT_VERSION" | grep -Eq '^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$' \
+    && printf '%s' "$SOURCE_REVISION" | grep -Eq '^[0-9a-fA-F]{40,64}$' \
+    && printf '%s' "$SOURCE_URL" | grep -Eq '^https://[A-Za-z0-9.-]+(:[0-9]{1,5})?(/[A-Za-z0-9._~%+-]+)+$'
+
+LABEL org.opencontainers.image.title="Versorgungs-Kompass API" \
+      org.opencontainers.image.description="Geschuetzte API-Laufzeit des Versorgungs-Kompass" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.source="$SOURCE_URL" \
+      org.opencontainers.image.revision="$SOURCE_REVISION" \
+      org.opencontainers.image.version="$PRODUCT_VERSION"
+
+ENV NODE_ENV=production \
+    PORT=8080
+EXPOSE 8080
+
+USER node
+
+CMD ["node", "server.mjs"]
