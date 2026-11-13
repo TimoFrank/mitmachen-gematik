@@ -1,40 +1,50 @@
-# Entwicklung und QA
+# Build und Qualitätssicherung
 
 Stand: 13. November 2026
 
-Dieses Repository prüft ausschließlich den gematik-Kern. Die breite Anwendung und ihre Demo werden im Originalrepo weiterentwickelt. Änderungen erfolgen nach den [Arbeitsregeln](../../AGENTS.md) auf einem benannten Branch und per Pull Request.
+Ein Build erzeugt aus den Quellen die auslieferbaren Anwendungsdateien. Die Oberfläche und die API werden getrennt gebaut und gemeinsam geprüft. Die [Arbeitsregeln](../../AGENTS.md) gelten für Änderungen auf Branches und deren Integration per Pull Request.
 
-## Lokal vorbereiten
+![Vom Quellcode zu den geprüften Anwendungsartefakten](../assets/build.svg)
 
-Node.js 22, npm und Docker bereitstellen. Chromium für die Browserprüfung einmalig installieren:
+## Lokaler Gesamtprobelauf
+
+Node.js 22, npm, Docker und OpenSSL bereitstellen. Chromium einmalig installieren und das Paket bauen:
 
 ```bash
 npm ci
 npx --no-install playwright install chromium
-API_BASE_URL=https://target.example.invalid npm run build:target
+npm run package:proof
 ```
 
-`dist/target/` enthält das Frontend. Für eine funktionale Prüfung werden zusätzlich eine passende API, synthetische Datenbank und OIDC-Prüfumgebung benötigt. Ein statischer Build prüft weder Anmeldung noch Speicherung.
+Die Ausgabe nennt das Paket unter `dist/local-proof/`. Diesen Dateipfad im folgenden Aufruf einsetzen:
 
-## Prüfungen im Kernrepo
+```bash
+npm run test:package -- "dist/local-proof/PAKETDATEI.tar.gz"
+```
+
+Das Paket enthält Oberfläche, API-Image, PostgreSQL-16-Image, Schema, Prüfsummen und Herkunft. Der Test entpackt es separat und startet eine kurzlebige synthetische OIDC-Prüfanmeldung, die echte API und Datenbank sowie den Browser. Ein ungecommitteter Quellstand wird ausdrücklich gekennzeichnet.
+
+Der Probelauf zeigt den lokalen Start der Anwendung. Institutionelle Anmeldung, Plattformanbindung und Betriebsfreigabe benötigen die gesonderte Zielabnahme.
+
+Auf GitHub lässt sich derselbe Ablauf unter **Actions → Build-Probelauf → Run workflow** starten. Nach erfolgreicher Prüfung stehen Paket und Prüfnachweis dort drei Tage zum Herunterladen bereit. Die [Workflow-Datei](../../.github/workflows/build-proof.yml) beschreibt den Ablauf.
+
+Für einzelne Buildschritte stehen `build:target` und `build:api:target` bereit. Die erste Ausgabe ist das statische Frontend, die zweite der gebündelte API-Code. [api/Dockerfile](../../api/Dockerfile) beschreibt das API-Image.
+
+## Prüfungen
 
 | Zweck | Befehl |
 | --- | --- |
 | Kleine lokale Dokumentationsprüfung | `npm run qa:small` und `npm run check:docs-language` |
-| Kern-, API-, Container- und Artefaktverträge | `npm run check:target-release` |
-| Browserprüfung des Kerns | `npm run test:gematik-ui` |
+| API-, Container- und Artefaktverträge | `npm run check:target-release` |
+| Browserprüfung | `npm run test:gematik-ui` |
 | Vollprüfung vor PR und Integration | `npm run qa:full` |
 
-Sichtbare Änderungen im echten Browser prüfen. Desktop und relevante mobile Zustände erhalten anklickbare Screenshot-Vorschauen. Nur synthetische Daten verwenden. Eigene Browser und Testserver danach schließen.
+Die Tests prüfen Datenzugriff, serverseitige Rollen, Funktionsumfang und Anwendungsartefakte. Fachabläufe werden mit synthetischen Daten geprüft. Sichtbare Änderungen erhalten Desktop- und relevante mobile Screenshot-Vorschauen. Eigene Browser und Testserver danach schließen. Ausgaben in `dist/` und Testberichte bleiben unversioniert.
 
-## Nachweise der Funktionsgrenze
-
-Der Build enthält die beiden Kompasse und notwendige gemeinsame Funktionen. Direkte URLs entfallener Bereiche dürfen deren Arbeitsansichten nicht öffnen. Die API sperrt Stakeholder-, Format-, TYPO3- und Registrierungsrouten. Der Artefaktbaum enthält keine öffentlichen Registrierungsseiten, Demo-Daten, öffentlichen Politikdaten oder private Identitätsdateien.
-
-Kernschema und Rollen müssen die Fachabläufe tragen. Die Tests führen keine automatische Löschung eines bestehenden Gesamtbestands aus. Testberichte und `dist/` bleiben unversioniert.
+Nach bewussten Quelländerungen `npm run manifest:import` und `npm run verify:import` ausführen. Dateiinventar, Prüfsummen und fachlichen Diff zusammen prüfen. Das Manifest ist keine Release-Freigabe.
 
 ## Zusätzlich vor dem Zielbetrieb
 
-Die institutionelle Abnahme umfasst Frontend und Login, anonyme Ablehnung, manipulierte oder unbekannte Tokens, Netzisolation, Lese- und Schreibrolle, synthetisches CRUD mit Bereinigung, DB-Stichprobe und isolierten Restore. Ein technischer Jenkins-Smoke allein genügt nicht.
+Die reale Abnahme umfasst Oberfläche und Login, anonyme Ablehnung, manipulierte oder unbekannte Tokens, Netzisolation, Lese- und Schreibrolle, synthetisches CRUD mit Bereinigung, DB-Stichprobe und isolierten Restore. Ein technischer Jenkins-Smoke allein genügt nicht.
 
-[SECURITY.md](../../SECURITY.md) ergänzt die blockierenden Scanner-, SBOM- und Attestationsgates. Fehlende zentrale Nachweise sperren das Deployment. `not-run` ist nur für lokale Vorprüfungen zulässig. Eine erfolgreiche Vollprüfung oder Integration erstellt weder einen Release-Tag noch eine Betriebsfreigabe.
+[SECURITY.md](../../SECURITY.md) ergänzt die Scanner-, SBOM- und Attestationsgates. Fehlende zentrale Nachweise sperren das Deployment. `not-run` ist nur für lokale Vorprüfungen zulässig. Eine erfolgreiche Vollprüfung oder Integration erstellt weder einen Release-Tag noch eine Betriebsfreigabe.

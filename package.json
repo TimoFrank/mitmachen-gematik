@@ -30,7 +30,9 @@
     "manifest:import": "node scripts/update_import_manifest.mjs",
     "test:import-source": "node scripts/test_import_source.mjs",
     "build": "npm run build:target",
-    "test:deployment-preflight": "node scripts/test_core_deployment_preflight.mjs"
+    "test:deployment-preflight": "node scripts/test_core_deployment_preflight.mjs",
+    "package:proof": "node scripts/package_local_proof.mjs",
+    "test:package": "node scripts/test_local_proof_package.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

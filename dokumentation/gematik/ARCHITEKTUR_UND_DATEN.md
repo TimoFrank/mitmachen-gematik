@@ -2,41 +2,37 @@
 
 Stand: 13. November 2026
 
-Das Target besteht aus statischem Frontend, Node.js-API und dedizierter PostgreSQL-16-Datenbank. GKE betreibt die API. Das institutionelle Gateway stellt Frontend und API unter derselben internen HTTPS-Adresse bereit.
+Die Anwendung besteht aus einer Oberfläche im Browser, einer Node.js-API und einer PostgreSQL-16-Datenbank. Die Oberfläche wird als statische Dateien bereitgestellt. Die API verarbeitet Anfragen, prüft Rechte und greift auf die Datenbank zu. GKE betreibt die API.
 
-```text
-Browser -> institutionelles OIDC-Gateway
-             /       statisches Target-Frontend
-             /api    Node.js-API auf GKE -> PostgreSQL
-                                      -> optional freigegebene Bestandsdateien
-```
+![Zusammenspiel von Oberfläche, Anmeldung, API und Datenbank](../assets/architektur.svg)
 
-| Grenze | Vertrag |
+## Anmeldung und Datenzugriff
+
+| Bestandteil | Vertrag |
 | --- | --- |
-| Produktumfang | `gematik-core`: zwei Kompasse und ihre notwendige gemeinsame Grundlage |
-| Browser | Fachdaten nur über die API. Keine Demo-Daten und keine Browser-Ersatzdatenbank |
-| Identität | Gateway entfernt Browser-Identitätsheader und übergibt ein geprüftes signiertes JWT als Bearer-Token |
-| Rechte | API prüft Token, aktives Profil, Rolle und erlaubte Aktion serverseitig |
+| Interne Adresse | Oberfläche und `/api` liegen unter derselben HTTPS-Adresse hinter dem institutionellen Gateway |
+| OIDC-Anmeldung | Das Gateway entfernt Browser-Identitätsheader und übergibt ein geprüftes signiertes JWT als Bearer-Token an die API |
+| Rechte | Die API prüft Token, aktives Profil, Rolle und erlaubte Aktion serverseitig |
+| Fachdaten | Der Browser lädt sie ausschließlich über die geschützte API |
 | Datenbank | Eingeschränkte Laufzeitrolle, verschlüsselte Verbindung und kontrollierte Schemaänderungen |
-| Dateien | Neue Uploads aus. Bestandsdateien nur nach gesonderter Speicher- und Übernahmeentscheidung |
-| Artefakte | Frontend und API aus demselben freigegebenen Quellstand, Nachweis über Commit und eigene Digests |
+| Buildnachweis | Oberfläche und API stammen aus demselben Quellstand und erhalten eigene Inhaltsdigests |
 
-Die API darf nicht unter Umgehung des Gateways erreichbar sein. Ein reines Cookie-Gateway oder browserseitiges OAuth ist kein Ersatz für den vorhandenen Bearer-JWT-Vertrag.
+Die API darf nur über das Gateway erreichbar sein. Der Browser verwaltet selbst keine Anmeldetokens. Der Plattformanschluss muss den beschriebenen Bearer-JWT-Vertrag erfüllen.
 
-## Daten und Schnittstellen
+## Datenbestand
 
-Zum Kern gehören Organisationen, berufliche Kontakte, Profile und Rollen sowie Hospitationstermine, Framework-Zuordnungen, Beobachtungen und Auswertungsbezüge. Echte Fachdaten bleiben außerhalb von Git, Images, Buildmanifesten, Screenshots und technischen Prüfberichten.
+Zum Datenmodell gehören Organisationen, berufliche Kontakte, Profile und Rollen sowie Hospitationstermine, Framework-Zuordnungen, Beobachtungen und Auswertungsbezüge. Echte Fachdaten bleiben außerhalb von Git, Images, Buildmanifesten, Screenshots und technischen Prüfberichten.
 
-Ein neuer Zielbestand startet mit dem geprüften Kernschema und synthetischen Daten. Eine spätere Übernahme beschränkt sich auf freigegebene Kern-Datenklassen. Abhängigkeiten, Mengen und Fingerprint werden geprüft. Persönliche Identitätszuordnungen und Daten entfallener Module bleiben draußen. Eine Datenübernahme oder Löschung wird durch die Quellbereitstellung nicht ausgeführt.
+Die erste Abnahme verwendet das geprüfte Schema und synthetische Daten. Eine spätere Datenübernahme benötigt bestätigte Datenklassen und prüft Abhängigkeiten, Mengen und Fingerprint. Quellbereitstellung und Datenübernahme sind getrennte Vorgänge.
 
-OIDC, Datenbankzugang, TLS und Gateway werden institutionell eingerichtet. Kartenanbieter, Zielhosts, Lizenz, Schlüssel und übertragener Datenumfang sind vor Nutzung zu bestätigen. Bestandsdateien können über den vorhandenen GCS-Adapter angebunden werden, benötigen aber eigene Plattformwerte und Freigabe. TYPO3, Survalyzer und private Google-/Mac-Dienste werden nicht automatisch aktiviert.
+Kartenanbieter, Zielhosts, Lizenz, Schlüssel und übertragener Datenumfang sind vor Nutzung zu bestätigen. Neue Bild- und Datei-Uploads sind deaktiviert. Für vorhandene Dateien sind Speicher, Plattformwerte und Freigabe gesondert festzulegen. Der vorhandene Speicheradapter verwendet die GCS-API.
 
-## Führende technische Quellen
+## Technische Quellen
 
-- [API-Routengrenze und Kerntabellen](../../api/gematik-core-policy.mjs)
-- [Kern-Datenbank](../../deploy/postgres/gematik-core/README.md)
-- [Target-Konfiguration](../../config/target/deployment.json)
-- [Helm-Overlay](../../deploy/helm/versorgungs-kompass/values-target-gematik.yaml)
-- [Technische Referenzpipeline](../../deploy/jenkins/Jenkinsfile.gematik)
+- [API-Routen und Tabellenumfang](../../api/gematik-core-policy.mjs)
+- [Datenbankschema und Einrichtung](../../deploy/postgres/gematik-core/README.md)
+- [Laufzeitkonfiguration](../../config/target/deployment.json)
+- [Kubernetes-Konfiguration](../../deploy/helm/versorgungs-kompass/values-target-gematik.yaml)
+- [Referenzpipeline](../../deploy/jenkins/Jenkinsfile.gematik)
 
-Konkrete Zielwerte, Zugangsdaten und Abnahmeprotokolle werden in der geschützten institutionellen Betriebsakte geführt. [Betrieb](../betrieb-und-deployment/BETRIEB_GEMATIK.md) und [Security](../../SECURITY.md) beschreiben die Voraussetzungen.
+Konkrete Zielwerte, Zugangsdaten und Abnahmeprotokolle werden geschützt geführt. [Betrieb](../betrieb-und-deployment/BETRIEB_GEMATIK.md) und [Security](../../SECURITY.md) beschreiben die Voraussetzungen.

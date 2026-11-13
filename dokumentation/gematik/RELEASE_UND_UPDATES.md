@@ -2,32 +2,30 @@
 
 Stand: 13. November 2026
 
-Das private GitHub-Repo [mitmachen-gematik](https://github.com/TimoFrank/mitmachen-gematik) stellt die reduzierte Quellbasis bereit. Das [Originalrepo mitmachen](https://github.com/TimoFrank/mitmachen) bleibt mit vier Kompassen und öffentlicher Demo aktiv. Nach dem geprüften Import führt das institutionelle GitLab ausschließlich den gematik-Betriebsstand.
+Das private GitHub-Repo [mitmachen-gematik](https://github.com/TimoFrank/mitmachen-gematik) stellt den Quellstand bereit. Nach dem geprüften Import führt das institutionelle GitLab den gematik-Betriebsstand.
 
-## Vorbereitung auf GitHub
+## Vorbereitung
 
-Den Kernstand vollständig prüfen, per PR auf `main` integrieren und den vollständigen Commit-SHA dieses Stands festhalten. Der vorbereitende Stand ist noch kein signierter Zielrelease. Es wird dafür kein Release-Tag erzeugt. Der Herkunftsnachweis mit `releaseEligible: false` dokumentiert die Ableitung, ersetzt aber keine Freigabe.
+Den Anwendungsstand vollständig prüfen, per PR auf `main` integrieren und den vollständigen Commit-SHA festhalten. Der vorbereitende Stand ist noch kein signierter Zielrelease. Dafür wird kein Release-Tag erzeugt. Der Herkunftsnachweis mit `releaseEligible: false` ersetzt keine Freigabe.
 
-## Privates Repository per URL importieren
+## Repository per URL importieren
 
-1. Auf der Zielinstanz prüfen, dass **Repository by URL** als Importquelle aktiviert ist und die zuständige Person im Zielbereich die erforderlichen Rechte hat.
-2. **New project/repository → Import project → Repository by URL** wählen. Als Quelle `https://github.com/TimoFrank/mitmachen-gematik.git` verwenden. Zielgruppe, Projektname und private Sichtbarkeit prüfen.
-3. Für die private Quelle GitHub-Benutzername und einen kurzlebigen PAT mit Lesezugriff auf dieses Repository in die vorgesehenen Zugangsfelder eintragen. Den Token nicht in die URL einbetten und nicht in Git, Dokumentation oder Logs schreiben.
-4. Import starten. Anschließend den vollständigen `main`-Commit-SHA und das vorhandene Taginventar mit der freigegebenen GitHub-Kernquelle vergleichen. Ein erfolgreicher URL-Import übernimmt deren Commits. Er erzeugt nicht automatisch einen neuen Quellcommit oder Release-Tag.
-5. Importergebnis und institutionelle Quellverantwortung intern protokollieren. Die GitLab-Pipeline anschließend auf die bestätigte GitLab-Quell-URL und die geschützten Plattformwerte ausrichten.
+1. Auf der Zielinstanz prüfen, dass **Repository by URL** aktiviert ist und der Importzugang die erforderlichen Rechte besitzt.
+2. **New project/repository → Import project → Repository by URL** wählen. Als Quelle `https://github.com/TimoFrank/mitmachen-gematik.git` verwenden. Zielbereich, Projektname und private Sichtbarkeit prüfen.
+3. GitHub-Benutzername und kurzlebigen PAT mit Lesezugriff auf dieses Repository in die Zugangsfelder eintragen. Den Token nicht in die URL einbetten oder in Git, Dokumentation und Logs schreiben.
+4. Import starten. Danach den vollständigen `main`-Commit-SHA und das Taginventar mit der bestätigten GitHub-Quelle vergleichen. Der URL-Import übernimmt deren Commits und erzeugt keinen Release-Tag.
+5. Importergebnis und institutionelle Quellverantwortung protokollieren. Die Pipeline auf die bestätigte GitLab-Quell-URL und geschützten Plattformwerte ausrichten.
 
-Der Import ist ein gesonderter Bedienvorgang. Die vorliegende GitHub-Vorbereitung führt ihn nicht aus. Voraussetzungen und Zugangsfelder beschreibt die [offizielle GitLab-Anleitung](https://docs.gitlab.com/user/import/third_party_systems/repo_by_url/). Einzelne Optionen hängen von der Zielinstanz ab.
+Diese Quellvorbereitung führt den Import nicht aus. Die [offizielle GitLab-Anleitung](https://docs.gitlab.com/user/import/third_party_systems/repo_by_url/) beschreibt Voraussetzungen und Zugangsfelder. Einzelne Optionen hängen von der Zielinstanz ab.
 
-## Updates nach dem Import
+## Updates
 
-GitLab ist für den institutionellen Betriebsstand führend. Verbesserungen aus dem Originalprojekt oder dem GitHub-Kernrepo werden gezielt als Änderungen mit Herkunftsnachweis und Merge Request übernommen. Umfang, Datenvertrag, Security und QA vor der Integration prüfen. Das Projekt für Updates nicht erneut importieren und nicht automatisch bidirektional spiegeln.
+Änderungen werden gezielt mit Herkunftsnachweis und Merge Request übernommen. Umfang, Datenvertrag, Security und QA vor der Integration prüfen. Das Projekt für Updates nicht erneut importieren oder automatisch bidirektional spiegeln. Ausgangscommit, übernommene Änderung und GitLab-Commit nachvollziehbar verbinden.
 
-GitHub-Ausgangscommit, übernommene Änderung und GitLab-Commit nachvollziehbar verbinden. Beide Produktlinien können eigene Versionsstände haben. Ein Demo-Update oder ein Tag im breiten Originalprojekt aktualisiert den gematik-Betrieb nicht.
+Vor einem Update Oberfläche, API und Datenbankschema gemeinsam auf Kompatibilität prüfen. Ein Helm-Rollback stellt Oberfläche oder Datenbank nicht automatisch zurück. Nach fachlichen Schreibvorgängen ist ein alter Dump kein verlustfreier Rückweg.
 
-## Späterer Release und Betrieb
+## Späterer Release
 
-Erst nach institutioneller Prüfung und Freigabe einen geeigneten signierten, annotierten Produkt-Tag `vX.Y.Z` festlegen. Autoritative Quell-URL, Tagobjekt, Commit, Signatur und unabhängig bestätigten Fingerprint verifizieren. Frontend und API frisch aus demselben Tag bauen und über eigene Digests nachweisen.
+Nach institutioneller Prüfung und Freigabe einen geeigneten signierten, annotierten Produkt-Tag `vX.Y.Z` festlegen. Quell-URL, Tagobjekt, Commit, Signatur und unabhängig bestätigten Fingerprint verifizieren. Oberfläche und API frisch aus demselben Tag bauen und über eigene Digests nachweisen.
 
-Plattform- und Security-Gates sowie die vollständige [Zielabnahme](../betrieb-und-deployment/BETRIEB_GEMATIK.md#erforderliche-reale-zielprüfungen) bleiben verbindlich. Die Quellübernahme autorisiert weder echte Fachdaten noch ein GKE-Deployment. Alte RC.5-Tags des Originalprojekts sind keine Freigabe dieses Kerns. Die erste stabile Version `v1.0.0` benötigt eine ausdrückliche Entscheidung und ein verifiziertes Target-Deployment.
-
-Vor Updates Frontend, API und Datenbankschema gemeinsam auf Kompatibilität prüfen. Ein Helm-Rollback stellt Frontend oder Datenbank nicht automatisch zurück. Nach fachlichen Schreibvorgängen ist ein alter Dump kein verlustfreier Rückweg.
+Plattform- und Security-Gates sowie die vollständige [Zielabnahme](../betrieb-und-deployment/BETRIEB_GEMATIK.md#erforderliche-reale-zielprüfungen) bleiben verbindlich. Die Quellübernahme ist keine Freigabe für echte Fachdaten oder ein GKE-Deployment. Die erste stabile Version `v1.0.0` benötigt eine ausdrückliche Entscheidung und ein verifiziertes Target-Deployment.

@@ -11,7 +11,7 @@
     "originalExportManifest": "dokumentation/quellen/ursprungsmanifest.json",
     "originalExportManifestSha256": "0d407a57e6d8af3e593c4ed7c78e9bb39cb97a8c459cbd44201204c94cc76d48"
   },
-  "inventoryDigest": "sha256:943643e9ecbb0c3672473877514f668bee0ab7afcd84f8d960fe13a587e56cca",
+  "inventoryDigest": "sha256:0c8eee294a2e6b137790000bc45d8224100e947c08bfc1d3095cf1012f777aa5",
   "files": [
     {
       "path": ".dockerignore",
@@ -22,6 +22,11 @@
       "path": ".gitattributes",
       "sha256": "6f9e4f7df53c31450e41dd966b3028a88bf222525a5f27f38e6da082b78d8415",
       "size": 160
+    },
+    {
+      "path": ".github/workflows/build-proof.yml",
+      "sha256": "af969be15f49cae58ee45b5859a08e9f95c21a3634395dfecbf97dc8557788bd",
+      "size": 2335
     },
     {
       "path": ".github/workflows/core-checks.yml",
@@ -50,13 +55,13 @@
     },
     {
       "path": "README.md",
-      "sha256": "152b707371377f2a14b9bb69b99fcdc59882d7c73f08e4e4462e1919f910a627",
-      "size": 2588
+      "sha256": "b4bf123865844d210104438da60fdacfb1e8d729b611c110f39dce1f7684eec9",
+      "size": 1595
     },
     {
       "path": "SECURITY.md",
-      "sha256": "f6605e31e15df6a6e77c66f2a2f5c42f0b4683c3817fbf36b8380af0b2b77f8c",
-      "size": 3785
+      "sha256": "f229379da301baf975dbcc7079e05ee96970866f6bc93aa3c5be584147f74b8b",
+      "size": 3139
     },
     {
       "path": "api/Dockerfile",
@@ -230,8 +235,8 @@
     },
     {
       "path": "deploy/postgres/gematik-core/README.md",
-      "sha256": "44e6734ec8eab6ea46550a720ab63f3998e87a740c33d6bc7f98fc6458fb08ab",
-      "size": 1070
+      "sha256": "4bab71160fa8eb579a2031aebab2adfd1dcc6e443b41fc2d8c8799bba886afbb",
+      "size": 1222
     },
     {
       "path": "deploy/postgres/gematik-core/grants.sql",
@@ -259,34 +264,59 @@
       "size": 4172
     },
     {
+      "path": "dokumentation/assets/anwendung.svg",
+      "sha256": "a6bf709f42f15017a5b647a2e12f62609022e5fc0986d0fcd3b2b4d1d3be20b3",
+      "size": 2970
+    },
+    {
+      "path": "dokumentation/assets/architektur.svg",
+      "sha256": "8fa83ae2750c903191dd13b1b32a61da7122d627bd2bf2c24ee807038ee7d8ad",
+      "size": 3305
+    },
+    {
+      "path": "dokumentation/assets/banner.svg",
+      "sha256": "fd8aff8a1651ed7349bc729c06da1a5331f18eb3663752ce0b2e5d539597fcb0",
+      "size": 3192
+    },
+    {
+      "path": "dokumentation/assets/bereitstellung.svg",
+      "sha256": "d91705039a96ea31bdc7470f4e1604a8d5fea8529b2ba12069da23fcb423e28c",
+      "size": 2561
+    },
+    {
+      "path": "dokumentation/assets/build.svg",
+      "sha256": "0a27b4cba1a9b1aab78019e2da00290822482599482d0a9237d3fa7da7dfea1e",
+      "size": 3309
+    },
+    {
       "path": "dokumentation/betrieb-und-deployment/BETRIEB_GEMATIK.md",
-      "sha256": "aac3742076d7720b01310f29ce995373714be5456fe2a79699cb33c2de4af299",
-      "size": 5283
+      "sha256": "ebff3272239ce49fc360228b70a2e111f4593ea7d4d1b09a77a6bbef40bd315c",
+      "size": 4308
     },
     {
       "path": "dokumentation/gematik/ANWENDUNG.md",
-      "sha256": "06b3fa17d1917c30c49f067b9d03d9e526c48c2d7e26f551691acf25cc87fd24",
-      "size": 3039
+      "sha256": "461e85a0018d0d6451878bb3205bfd1d3e489d588ccebb71134e8508466b241e",
+      "size": 1981
     },
     {
       "path": "dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md",
-      "sha256": "7f3145d84c367f4aaf808d34849848204cf933dfadb731ee3ff2aa9dd5812ea5",
-      "size": 3174
+      "sha256": "91de78ece09facd644dfebf40d97c2685ec79abd65a408060f367290bd964d99",
+      "size": 2767
     },
     {
       "path": "dokumentation/gematik/DATENSCHUTZ_UND_COMPLIANCE.md",
-      "sha256": "7c3e8004601f27997231148733a57db733bbe03972fa54df5ecb596cc45b918c",
-      "size": 4867
+      "sha256": "0c0bbd7d4fc764f1e9b10b6ef3e14cea04109985739a336dd53cafdcd605020d",
+      "size": 3348
     },
     {
       "path": "dokumentation/gematik/ENTWICKLUNG_UND_QA.md",
-      "sha256": "aaad381e73e80bb8e64f03013f41aa650583d06a77cc5cb2f0ba2cdce7910f3e",
-      "size": 2570
+      "sha256": "544e46457970d26bb8fb6a06b1c4e9a70dfe619ee03bf5c217b89170d38e4d30",
+      "size": 3263
     },
     {
       "path": "dokumentation/gematik/RELEASE_UND_UPDATES.md",
-      "sha256": "ab37c3b5a4645269dda700662601f01cdf42a72ac22b12dbd47b93fe2ec1c2da",
-      "size": 3910
+      "sha256": "1bdb162f3377a2f98962c8a7cfa4863694b2a3596c4a90a80a801794dfb41b33",
+      "size": 3060
     },
     {
       "path": "dokumentation/quellen/ursprungsmanifest.json",
@@ -705,8 +735,8 @@
     },
     {
       "path": "package.json",
-      "sha256": "4c07a694f3db474074a84ed41fc5b87eadfd8704abed3a7f8b9aaff2059d423d",
-      "size": 2949
+      "sha256": "e6e061d90072cf65e6f85ce006ef09e850de3d27910fba9a26dcf9892e0093df",
+      "size": 3075
     },
     {
       "path": "playwright.gematik.config.js",
@@ -964,6 +994,11 @@
       "size": 5031
     },
     {
+      "path": "scripts/lib/local-proof-runtime.mjs",
+      "sha256": "7b9e9ebe5c40dc0ce6ae8243e878fd2490a85ec4248f71a3114bdd0eb29db663",
+      "size": 22992
+    },
+    {
       "path": "scripts/lib/release_policy.mjs",
       "sha256": "7dac923a3853a07797f20575a025a10e8b96d7835bec292ef1577dae1b0a9b93",
       "size": 20112
@@ -972,6 +1007,11 @@
       "path": "scripts/normalize_repository_url.mjs",
       "sha256": "dc0f12ca0958a27d03e45349a9b5baa9a6b708e338284d3c195ce1fb829415c4",
       "size": 2440
+    },
+    {
+      "path": "scripts/package_local_proof.mjs",
+      "sha256": "a1ed4f491be3add572d94c9b3f62ff50ab12d8ee0fda4a01862ceb64379424ed",
+      "size": 8858
     },
     {
       "path": "scripts/package_source_handoff.mjs",
@@ -1047,6 +1087,11 @@
       "path": "scripts/test_import_source.mjs",
       "sha256": "9ac6b57fb3b29fec605d71da30247d6007e29f923b2a5f47ecd4241ef4e01bcb",
       "size": 3811
+    },
+    {
+      "path": "scripts/test_local_proof_package.mjs",
+      "sha256": "32c135a476396decb2cef2cf62338dfa2bc65efaaec9fc6fb890cc1535307c9e",
+      "size": 17341
     },
     {
       "path": "scripts/test_security_evidence.mjs",
