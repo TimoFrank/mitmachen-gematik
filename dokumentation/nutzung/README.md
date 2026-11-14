@@ -1,8 +1,8 @@
-# Nutzerhandbuch
+# Kurzanleitung
 
-Gematik-Fassung für den Versorgungs-Kompass und den Hospitations-Kompass. Stand 13. November 2026, Fassung 3 mit zwölf Seiten.
+Gematik-Fassung für den Versorgungs-Kompass und den Hospitations-Kompass. Stand 14. November 2026, Fassung 6 mit 15 Seiten.
 
-- [Handbuch als PDF lesen](Nutzerhandbuch.pdf)
+- [Kurzanleitung als PDF lesen](Nutzerhandbuch.pdf)
 - [Bearbeitbare Word-Fassung herunterladen](Nutzerhandbuch.docx)
 
-Die bebilderte Kurzanleitung erklärt Karte, Kontakte, Kontaktdetails, Notizen und Organisationen sowie Vorbereitung, Dokumentation und Auswertung von Hospitationen. Die Abbildungen zeigen erfundene Beispieldaten. Sichtbare Funktionen richten sich nach der Rolle.
+Die bebilderte Anleitung erklärt Karte, Kontakte, Kontaktdetails, Notizen, Organisationen, Auswertung und Aktivitäten. Der zweite Abschnitt führt durch Übersicht, Planung, Beobachtungen und Dashboard des Hospitations-Kompasses. Die Abbildungen zeigen erfundene Beispieldaten. Sichtbare Funktionen richten sich nach der Rolle.

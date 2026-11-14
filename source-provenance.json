@@ -11,7 +11,7 @@
     "originalExportManifest": "dokumentation/quellen/ursprungsmanifest.json",
     "originalExportManifestSha256": "0d407a57e6d8af3e593c4ed7c78e9bb39cb97a8c459cbd44201204c94cc76d48"
   },
-  "inventoryDigest": "sha256:d091058ebb3be6c68bb68ed548100d13225ec19e8aec9433a51811dccbdb5d66",
+  "inventoryDigest": "sha256:c0cf0f04bbf9eb1ad3f1eda639b3aa686f572aed26b68ba368d5fc94eec8f620",
   "files": [
     {
       "path": ".dockerignore",
@@ -55,8 +55,8 @@
     },
     {
       "path": "README.md",
-      "sha256": "341b224e6434127c72d38373318797146ca20dc72c04f26783ec977722ad0281",
-      "size": 1864
+      "sha256": "d4ed1dea6f8645b077a4ff644f566f7c33fbdcc4816a0df320c9ff418adc8455",
+      "size": 1886
     },
     {
       "path": "SECURITY.md",
@@ -295,8 +295,8 @@
     },
     {
       "path": "dokumentation/gematik/ANWENDUNG.md",
-      "sha256": "072ad500a20171bfb8e738691c2bc510d9c00945f54ca6b077f5eef61557a3af",
-      "size": 2282
+      "sha256": "e9a1e14b05a3318775016d73ef802b09e2ea22b8fcbbb7da544ab17665c9207a",
+      "size": 2285
     },
     {
       "path": "dokumentation/gematik/ARCHITEKTUR_UND_DATEN.md",
@@ -320,18 +320,18 @@
     },
     {
       "path": "dokumentation/nutzung/Nutzerhandbuch.docx",
-      "sha256": "d2880941534a92564772f9e7946c233f354692fccbd84b8204c5fc1630824bf4",
-      "size": 2446353
+      "sha256": "888921e0b8dfde309651a098c34c57f4b4c6aa4fe7aeb4b5f6e62ba90910acdd",
+      "size": 6108358
     },
     {
       "path": "dokumentation/nutzung/Nutzerhandbuch.pdf",
-      "sha256": "5a1b9535d4aaf1d7cb998e869c7294f4cc82494bf28eb4e5cf6aa81b81fa9eeb",
-      "size": 2118586
+      "sha256": "0371161bd302fb9e46be7ece8831e348dd3deeab69c1bc50afddc0818a51fa58",
+      "size": 4016569
     },
     {
       "path": "dokumentation/nutzung/README.md",
-      "sha256": "2eb809a697b56830c1d8acec399c885678873b6511998ec35f075115e3d00b10",
-      "size": 525
+      "sha256": "80a2e9cb3e144072812f267283f5e008dc259c888472fa2e03c32ccd245762c5",
+      "size": 591
     },
     {
       "path": "dokumentation/quellen/ursprungsmanifest.json",
